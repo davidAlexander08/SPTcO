@@ -58,7 +58,6 @@ set(SPT_SOURCES ../src/SPT_main.cpp
                 ../src/C_ReservatorioEquivalente.cpp
                 ../src/C_RestricaoEletrica.cpp 
                 ../src/C_RestricaoOperativaUHE.cpp 
-                ../src/C_RestricaoRealizacao.cpp
                 ../src/C_Submercado.cpp 
                 ../src/C_Termeletrica.cpp 
                 ../src/C_UnidadeUHE.cpp 
