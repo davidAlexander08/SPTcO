@@ -2571,7 +2571,7 @@ double ModeloOtimizacao::otimizarProblema(const TipoSubproblemaSolver a_TSS, con
 						return posOtimizacaoProblema(a_TSS, a_idIteracao, a_idEstagio, a_idCenario, a_diretorio);
 
 					else if (getElementoVetor(AttVetorModeloOtimizacao_tratamento_inviabilidade, a_idEstagio, int()) == -1) {
-						std::cout << "a_idEstagio: " <<  a_idEstagio << "\n";
+						//std::cout << "a_idEstagio: " <<  a_idEstagio << "\n";
 
 						setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, 0.0);
 
@@ -2753,7 +2753,7 @@ double ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS
 				}
 
 				const double valorObjetivo = vetorEstagio.att(a_idEstagio).getSolver(a_TSS)->getValorObjetivo();
-				std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
+				//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
 
 				setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, valorObjetivo);
 
@@ -2786,7 +2786,7 @@ double ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS
 		} // if (vetorEstagio.att(a_idEstagio).getSolver(a_TSS)->getStatusOtimizacao()  == TipoStatusSolver_otimalidade) {
 
 		else if (vetorEstagio.att(a_idEstagio).getSolver(a_TSS)->getStatusOtimizacao() == TipoStatusSolver_tempo_excedido) {
-			std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.0 << "\n";
+			//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.0 << "\n";
 
 			setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, 0.0);
 
@@ -2847,7 +2847,7 @@ double ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS
 				}
 
 				const double valorObjetivo = vetorEstagio.att(a_idEstagio).getSolver(a_TSS)->getValorObjetivo();
-				std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
+				//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
 
 				setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, valorObjetivo);
 
@@ -2882,7 +2882,7 @@ double ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS
 							return posOtimizacaoProblema(a_TSS, a_idIteracao, a_idEstagio, a_idCenario, a_diretorio);
 
 						else if (getElementoVetor(AttVetorModeloOtimizacao_tratamento_inviabilidade, a_idEstagio, int()) == -1) {
-							std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.00 << "\n";
+							//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.00 << "\n";
 							setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, 0.0);
 
 							if (getVarDecisao_ZIseExistir(a_TSS, a_idEstagio, getAtributo(a_idEstagio, AttComumEstagio_periodo_otimizacao, Periodo())) > -1)
@@ -2972,7 +2972,7 @@ bool ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS, 
 				vetorEstagio.att(a_idEstagio).getSolver(a_TSS)->getLimiteSuperiorVarDinamica(a_limite_superior_var_dinamica.conta, a_limite_superior_var_dinamica.vetor);
 
 				getSolucaoDualVariavelEstado(a_idEstagio, a_sol_dual_var_estado.conta, a_sol_dual_var_estado.vetor);
-				std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
+				//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << valorObjetivo << "\n";
 
 				setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, valorObjetivo);
 
@@ -3032,7 +3032,7 @@ bool ModeloOtimizacao::posOtimizacaoProblema(const TipoSubproblemaSolver a_TSS, 
 
 			for (int i = 0; i < int(getMaiorId(a_idEstagio, IdVariavelEstado())); i++)
 				a_sol_dual_var_estado.add(0.0);
-			std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.0 << "\n";
+			//std::cout << "a_idEstagio: " <<  a_idEstagio << " valOBJ: " << 0.0 << "\n";
 
 			setElemento(AttVetorModeloOtimizacao_custo_total, a_idEstagio, 0.0);
 
@@ -3181,7 +3181,7 @@ double* ModeloOtimizacao::getReferenciaValoresEstado(const IdEstagio a_idEstagio
 double ModeloOtimizacao::getCustoTotal(const IdEstagio a_idEstagio){
 
 	try{ 
-		std::cout << "a_idEstagio: " <<  a_idEstagio << "\n";
+		//std::cout << "a_idEstagio: " <<  a_idEstagio << "\n";
 		return getElementoVetor(AttVetorModeloOtimizacao_custo_total, a_idEstagio, double()); } // try
 	catch (const std::exception& erro) { throw std::invalid_argument("ModeloOtimizacao(" + getString(getIdObjeto()) + ")::getCustoTotal(" + getString(a_idEstagio) + "): \n" + std::string(erro.what())); }
 

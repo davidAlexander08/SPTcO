@@ -639,11 +639,11 @@ void MetodoSolucao::executarPDDE_atualizarCustoSuperior(const IdIteracao a_idIte
 		if (a_idProcesso == IdProcesso_mestre) {
 
 			if (getSizeMatriz(AttMatrizMetodoSolucao_custo_superior) == 0)
-				setMatriz_forced(AttMatrizMetodoSolucao_custo_superior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
-
+				//setMatriz_forced(AttMatrizMetodoSolucao_custo_superior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
+				setMatriz_forced(AttMatrizMetodoSolucao_custo_superior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), 0.0)))));
 			if (getSizeMatriz(AttMatrizMetodoSolucao_probabilidade_cenario) == 0)
-				setMatriz_forced(AttMatrizMetodoSolucao_probabilidade_cenario, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
-
+				//setMatriz_forced(AttMatrizMetodoSolucao_probabilidade_cenario, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
+				setMatriz_forced(AttMatrizMetodoSolucao_probabilidade_cenario, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), 0.0)))));
 			if (a_custo_superior.size() != a_probabilidade_cenario.size())
 				throw std::invalid_argument("Os vetores de custo e probabilidade devem possuir as mesmas dimensoes.");
 
