@@ -1584,16 +1584,11 @@ void EntradaSaidaDados::imprimirArquivoCSV_AttMatriz_(const std::string a_nomeAr
 			return;
 
 		int numCol = 0;
-		for (int l = 0; l < int(matrizDados.size()); l++) {
-			int numCol_l = 0;
-			for (numCol_l = 1; numCol_l <= int(matrizDados.at(l).size()); numCol_l++) {
-				if (matrizDados.at(l).at(numCol_l - 1) == "") {
-					numCol_l--;
-					break;
-				}
+		for (numCol = 1; numCol <= int(matrizDados.at(0).size()); numCol++) {
+			if (matrizDados.at(0).at(numCol - 1) == "") {
+				numCol--;
+				break;
 			}
-			if (numCol_l > numCol)
-				numCol = numCol_l;
 		}
 		
 		if (numCol == 0)

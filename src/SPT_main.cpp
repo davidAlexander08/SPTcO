@@ -8,9 +8,6 @@
 #include <fstream>
 #include <chrono>
 
-
-// #define LARGE_MODEL
-
 void getInfoProduto(const std::string a_arquivoLicenca) {
 	std::cout << "##########################################################" << std::endl << std::endl;
 	std::cout << "                      Modelo SPARHTACUS - sparhtacus.com " << std::endl;
@@ -191,7 +188,10 @@ int main(int argc, char *argv[]) {
 
 			Dados  dados;
 
-			dados.arranjoResolucao.instanciarProcessos(idProcesso, maiorIdProcesso);
+			dados.setAtributo(AttComumDados_idProcesso, idProcesso);
+			dados.setAtributo(AttComumDados_maior_processo, maiorIdProcesso);
+			dados.setAtributo(AttComumDados_numero_processos_paralelos, numProcs);
+			dados.setAtributo(AttComumDados_maior_processo, maiorIdProcesso);
 
 			EntradaSaidaDados entradaSaidaDados;
 
@@ -213,18 +213,18 @@ int main(int argc, char *argv[]) {
 			// OTIMIZACAO
 			//
 			if ((tipo_estudo == TipoEstudo_otimizacao_e_simulacao) || (tipo_estudo == TipoEstudo_otimizacao)) {
-
+				std::cout << "ENTROU EM OTIMIZACAO E SIMULACAO" << "\n";
 				entradaSaidaDados.setDiretorioSaida(dados.getAtributo(AttComumDados_diretorio_saida_dados, string()) + "//Otimizacao");
-
+				
 				auto start_clock_modelo = std::chrono::high_resolution_clock::now();
-
+				std::cout << "INICIOU MODELO OTIMIZACAO" << "\n";
 				ModeloOtimizacao modeloOtimizacao(IdModeloOtimizacao_multiestagio_estocastico_otimizacao, dados, entradaSaidaDados);
-
+				std::cout << "FINALIZOU MODELO OTIMIZACAO" << "\n";
 				if (idProcesso == IdProcesso_mestre)
 					std::cout << std::endl << std::endl << "TEMPO TOTAL PARA CRIAR O MODELO DE OTIMIZACAO                            = " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock_modelo).count() / 60 << std::endl;
-
+				std::cout << "INICIOU METODO SOLUCAO" << "\n";
 				MetodoSolucao(entradaSaidaDados, idProcesso, maiorIdProcesso, idMetodoSolucao, modeloOtimizacao);
-
+				std::cout << "FINALIZOU MODELO SOLUCAO" << "\n";
 				if (idProcesso == IdProcesso_mestre)
 					std::cout << std::endl << std::endl << "TEMPO TOTAL DE OTIMIZACAO = " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock_modelo).count() / 60 << std::endl;
 			}
@@ -286,7 +286,6 @@ int main(int argc, char *argv[]) {
 		std::cout << std::endl;
 		std::cout << std::endl;
 		std::cout << ":~(  Excecao encontrada na execucao do modelo!" << std::endl << std::endl;
-		std::cout << erro.what() << std::endl;
 
 		try {
 			std::ofstream escritaStream;

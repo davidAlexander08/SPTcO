@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
-
+using namespace std;
 ArranjoResolucao::ArranjoResolucao() {
 	try { INICIALIZA_SMART_ELEMENTO(ArranjoResolucao, SMART_ELEMENTO_ARRANJO_RESOLUCAO) }
 	catch (const std::exception&erro) { throw std::invalid_argument("ArranjoResolucao::ArranjoResolucao(): \n" + std::string(erro.what())); }

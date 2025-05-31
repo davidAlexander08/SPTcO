@@ -69,19 +69,6 @@ static bool strCompara(std::string const& a, std::string const& b) {
 
 }; // static bool strCompara(std::string const& a, std::string const& b) {
 
-template<typename TValue>
-static bool vectorCompara(std::vector<TValue> a_lista1, std::vector<TValue> a_lista2) {
-
-	if (a_lista1.size() != a_lista2.size())
-		return false;
-
-	for (int i = 0; i < a_lista1.size(); i++) {
-		if (a_lista1.at(i) != a_lista2.at(i))
-			return false;
-	}
-	return true;
-}
-
 static std::string alterar_CHARc_na_STRINGs_por_CHARn(const unsigned char c, std::string s, const unsigned char n) {
 
 	for (int i = 0; i < int(s.length()); i++) {
@@ -164,21 +151,6 @@ static int getintFromChar(const char * a_char) {
 
 }; // static int getintFromChar(const char * a_char) {
 
-
-template<typename TValue>
-static TValue getFromString(const TValue a_valor, const std::string a_str) { 
-	throw std::invalid_argument("getFromChar(" + a_str + "): Nao implementado.");
-};
-
-static int getFromString(const int a_valor, const std::string a_str) {
-	return getintFromChar(a_str.c_str());
-};
-
-static std::vector<int> getFromString(const std::vector<int> a_valor, const std::string a_str) {
-	return std::vector<int>(1, getintFromChar(a_str.c_str()));
-};
-
-
 static int getFromChar(const int a_int, const char * a_char) { return getintFromChar(a_char); };
 
 static std::string getString(int a_int) { 
@@ -210,8 +182,6 @@ static double getdoubleFromChar(const char * a_char) {
 static double getFromChar(const double a_double, const char * a_char) { return getdoubleFromChar(a_char); };
 
 static std::string getString(const double a_double) {
-	if (isnan(a_double))
-		return "NAN";
 	if (a_double >= DOUBLE_MAX * 0.99)
 		return "inf";
 	else if (a_double <= DOUBLE_MIN * 0.99)
@@ -304,27 +274,6 @@ static std::string getString(const std::vector<std::vector<double>> a_vetor) { r
 template<typename TipoValor>
 static std::string getString(TipoValor a_tipoValor) { return a_tipoValor.str(); }
 
-template<typename TipoValor>
-static std::string getStringFromLista(const std::vector<TipoValor> &a_lista, const std::string a_delimitador, bool a_full_string) {
-	
-	std::string retorno;
-
-	for (int i = 0; i < int(a_lista.size()); i++) {
-
-		std::string delimitador = a_delimitador;
-
-		if (i == int(a_lista.size()) - 1)
-			delimitador = "";
-
-		if (a_full_string)
-			retorno = retorno + getFullString(a_lista.at(i)) + delimitador;
-		else
-			retorno = retorno + getString(a_lista.at(i)) + delimitador;
-	}
-
-	return retorno;
-
-};
 
 static void strNormalizada(std::string &a_string){
 	

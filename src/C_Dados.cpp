@@ -102,16 +102,16 @@ Periodo Dados::getMaiorPeriodoHorizonteEstudo() const {
 void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
-		const IdProcesso maior_processo = arranjoResolucao.getMaiorId(IdProcesso());
-		const int numero_processos_paralelos = int(arranjoResolucao.getMaiorId(IdProcesso()));
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+		const int numero_processos_paralelos = getAtributo(AttComumDados_numero_processos_paralelos, int());
 
 
 		if (true) {
 			int barreira = 0;
 
-			if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-				for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+			if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+				for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 					MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 			}
 			else
@@ -162,6 +162,9 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 		if (strCompara(getAtributo(AttComumDados_diretorio_importacao_pos_estudo, std::string()), "nenhum"))
 			diretorio_exportacao_pos_estudo = "nenhum";
 
+		setAtributo(AttComumDados_idProcesso, idProcesso);
+		setAtributo(AttComumDados_maior_processo, maior_processo);
+		setAtributo(AttComumDados_numero_processos_paralelos, numero_processos_paralelos);
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_direto);
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, TipoAcessoInstancia_direto);
@@ -227,14 +230,14 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttComum("TERMELETRICA_AttComumOperacional.csv", *this, TipoAcessoInstancia_membro);
 
+		carregarArquivosEntrada_TERMELETRICA_COMANDO(a_entradaSaidaDados, true, true);
+
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("TERMELETRICA_AttVetorPremissa_PorPeriodo.csv", *this, TipoAcessoInstancia_membro);
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("TERMELETRICA_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_membro);
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("TERMELETRICA_UNIDADE_AttVetorPremissa_PorInteiro.csv", *this, TipoAcessoInstancia_membroMembro);
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("TERMELETRICA_AttMatrizPremissa_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("TERMELETRICA_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
-
-		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("TERMELETRICA_COMANDO_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
 
 		if (tipo_estudo == TipoEstudo_simulacao)
 			a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("TERMELETRICA_AttMatrizOperacional_PorCenarioPorPeriodo.csv", *this, TipoAcessoInstancia_membro);
@@ -406,8 +409,6 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttComum_seExistir("RESTRICAO_OPERATIVA_UHE_AttComumOperacional.csv", *this, TipoAcessoInstancia_membro);
 
-		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("RESTRICAO_OPERATIVA_UHE_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_membro);
-		
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("RESTRICAO_OPERATIVA_UHE_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
 
 		// ElementoSistema
@@ -488,15 +489,16 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 
 		// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		//
-		//                                                                        Carregar Arquivo Mapeamento Cenario e Abertura por Processo Por Iteracao
+		//                                                                        Carregar Arquivo Mapeamento Cenario e Abertura por Iteracao
 		//
 		// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-		bool mapeamento_cenarios_aberturas = a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("ESTRUTURA_RESOLUCAO_AttMatrizOperacional_PorCenarioPorEstagio.csv", *this, TipoAcessoInstancia_membroMembroMembro);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("ITERACAO_PROCESSO_AttMatrizOperacional_PorCenarioPorEstagio.csv", *this, TipoAcessoInstancia_membroMembro);
 
-		if (!mapeamento_cenarios_aberturas)
-			definirCenariosPorProcessosEmArranjoResolucao();
+		bool mapeamento_cenarios_aberturas = false;
+
+		validacao_mapeamento_cenarios(a_entradaSaidaDados, diretorio_att_operacionais, diretorio_att_premissas, imprimir_att_operacionais_sem_recarregar, mapeamento_cenarios_aberturas);
 
 		// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		//
@@ -513,27 +515,34 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_probabilidade_realizacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
+		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttVetorProcessoEstocastico_mapeamento_tendencia_temporal) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
 
-		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("VARIAVEL_ALEATORIA_" + getString(AttVetorVariavelAleatoria_tipo_relaxacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membro);
+		a_entradaSaidaDados.carregarArquivoCSV_AttComum_seExistir("VARIAVEL_ALEATORIA_AttComumOperacional.csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membro);
+
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("VARIAVEL_ALEATORIA_" + getString(AttMatrizVariavelAleatoria_residuo_espaco_amostral) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membro);
 		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("VARIAVEL_ALEATORIA_" + getString(AttMatrizVariavelAleatoria_coeficiente_linear_auto_correlacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membro);
 
 		a_entradaSaidaDados.carregarArquivoCSV_AttComum_seExistir("VARIAVEL_ALEATORIA_INTERNA_AttComumOperacional.csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membroMembro);
 
+		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_grau_liberdade) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membroMembro);
 		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_coeficiente_participacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membroMembro);
 
-		a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_tendencia_temporal) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membroMembro);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttMatrizVariavelAleatoriaInterna_tendencia_temporal) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_membroMembro);
+
+		//Leitura estrutura �rvore de cen�rios
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_realizacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_antecessor) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_probabilidade) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
+		a_entradaSaidaDados.carregarArquivoCSV_AttMatriz_seExistir("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_variavelAleatoria_realizacao) + ".csv", processoEstocastico_hidrologico, TipoAcessoInstancia_direto);
 
 		a_entradaSaidaDados.setDiretorioEntrada(diretorio_entrada);
 
 		validacao_operacional_ProcessoEstocasticoHidrologico(a_entradaSaidaDados, diretorio_att_operacionais, diretorio_att_premissas, diretorio_exportacao_pos_estudo, imprimir_att_operacionais_sem_recarregar);
 
-		//validacao_mapeamento_aberturas(a_entradaSaidaDados, diretorio_att_operacionais, diretorio_att_premissas, imprimir_att_operacionais_sem_recarregar, mapeamento_cenarios_aberturas);
+		validacao_mapeamento_aberturas(a_entradaSaidaDados, diretorio_att_operacionais, diretorio_att_premissas, imprimir_att_operacionais_sem_recarregar, mapeamento_cenarios_aberturas);
 
 		a_entradaSaidaDados.setDiretorioSaida(getAtributo(AttComumDados_diretorio_saida_dados, std::string()));
-
-		if (!mapeamento_cenarios_aberturas)
-			mapearCenariosAberturasPorIteracaoEmArranjoResolucao();
 
 		//
 		// Esvazia Atributos Processo Estocástico Hidrológico
@@ -541,12 +550,81 @@ void Dados::carregarArquivosEntrada(EntradaSaidaDados& a_entradaSaidaDados) {
 
 		processoEstocastico_hidrologico = ProcessoEstocastico();
 
-		validacao_mapeamento_cenarios_aberturas(a_entradaSaidaDados, diretorio_att_operacionais, diretorio_att_premissas, imprimir_att_operacionais_sem_recarregar, mapeamento_cenarios_aberturas);
-
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::carregarArquivosEntrada(a_entradaSaidaDados): \n" + std::string(erro.what())); }
 } // void Dados::carregarArquivosEntrada(){
 
+
+
+void Dados::carregarArquivosEntrada_TERMELETRICA_COMANDO(EntradaSaidaDados& a_entradaSaidaDados, bool a_carregar_pre_comando, bool a_carregar_comando) {
+
+	try {
+
+		Dados dados;
+
+		std::vector<IdTermeletrica> lista_termicas_carregadas;
+
+		for (int codigo_usina = 1; codigo_usina <= 500; codigo_usina++) {
+			bool comando_carregado = false;
+			bool pre_comando_carregado = false;
+			if (a_carregar_comando)
+				comando_carregado = a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("TERMELETRICA_COMANDO_" + getString(AttComumTermeletrica_codigo_usina) + "_" + getString(codigo_usina) + "_AttVetorOperacional_PorPeriodo.csv", dados, TipoAcessoInstancia_membro);
+			if (a_carregar_pre_comando)
+				pre_comando_carregado = a_entradaSaidaDados.carregarArquivoCSV_AttVetor_seExistir("TERMELETRICA_PRE_COMANDO_" + getString(AttComumTermeletrica_codigo_usina) + "_" + getString(codigo_usina) + "_AttVetorOperacional_PorPeriodo.csv", dados, TipoAcessoInstancia_membro);
+			if (comando_carregado || pre_comando_carregado) {
+				for (IdTermeletrica idTermeletrica_carregada = IdTermeletrica_1; idTermeletrica_carregada <= dados.vetorTermeletrica.getMaiorId(); idTermeletrica_carregada++) {
+					if (dados.vetorTermeletrica.isInstanciado(idTermeletrica_carregada)) {
+						bool nova_termica_instanciada = true;
+						for (int i = 0; i < int(lista_termicas_carregadas.size()); i++) {
+							if (lista_termicas_carregadas.at(i) == idTermeletrica_carregada) {
+								nova_termica_instanciada = false;
+								break;
+							}
+						}
+						if (nova_termica_instanciada) {
+							lista_termicas_carregadas.push_back(idTermeletrica_carregada);
+							dados.vetorTermeletrica.att(idTermeletrica_carregada).setAtributo(AttComumTermeletrica_codigo_usina, codigo_usina);
+							break;
+						}
+					}
+				} // for (IdTermeletrica idTermeletrica_carregada = IdTermeletrica_1; idTermeletrica_carregada <= dados.vetorTermeletrica.getMaiorId(); idTermeletrica_carregada++) {
+			} // if (comando_carregado || pre_comando_carregado) {
+		}
+
+		for (IdTermeletrica idTermeletrica_carregada = IdTermeletrica_1; idTermeletrica_carregada <= dados.vetorTermeletrica.getMaiorId(); idTermeletrica_carregada++) {
+
+			if (dados.vetorTermeletrica.isInstanciado(idTermeletrica_carregada)) {
+
+				int codigo_usina = dados.getAtributo(idTermeletrica_carregada, AttComumTermeletrica_codigo_usina, int());
+
+				IdTermeletrica idTermeletrica_encontrada = IdTermeletrica_Nenhum;
+				for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= getMaiorId(IdTermeletrica()); idTermeletrica++) {
+					if (getAtributo(idTermeletrica, AttComumTermeletrica_codigo_usina, int()) == codigo_usina) {
+						idTermeletrica_encontrada = idTermeletrica;
+						break;
+					}
+				}
+
+				if (idTermeletrica_encontrada == IdTermeletrica_Nenhum)
+					throw std::invalid_argument("Nao foi encontrada termeletrica com codigo " + getString(codigo_usina));
+
+				if (dados.getSizeVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_pre_comandada) > 0)
+					vetorTermeletrica.att(idTermeletrica_encontrada).setVetor_forced(AttVetorTermeletrica_potencia_disponivel_pre_comandada, dados.getVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_pre_comandada, Periodo(), double()));
+
+				if (dados.getSizeVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_comandada_minima) > 0)
+					vetorTermeletrica.att(idTermeletrica_encontrada).setVetor_forced(AttVetorTermeletrica_potencia_disponivel_comandada_minima, dados.getVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo(), double()));
+
+				if (dados.getSizeVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_comandada_maxima) > 0)
+					vetorTermeletrica.att(idTermeletrica_encontrada).setVetor_forced(AttVetorTermeletrica_potencia_disponivel_comandada_maxima, dados.getVetor(idTermeletrica_carregada, AttVetorTermeletrica_potencia_disponivel_comandada_maxima, Periodo(), double()));
+
+			} // if (dados.vetorTermeletrica.isInstanciado(idTermeletrica_carregada)) {
+
+		} // for (IdTermeletrica idTermeletrica_carregada = IdTermeletrica_1; idTermeletrica_carregada <= dados.vetorTermeletrica.getMaiorId(); idTermeletrica_carregada++) {
+
+	} // try{
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::carregarArquivosEntrada_TERMELETRICA_COMANDO(a_entradaSaidaDados, " + getString(a_carregar_pre_comando) + "): \n" + std::string(erro.what())); }
+
+} // void Dados::carregarArquivosEntrada_TERMELETRICA_COMANDO(EntradaSaidaDados& a_entradaSaidaDados){
 
 
 
@@ -560,7 +638,8 @@ SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> Dados::getHorizonteEspac
 		SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> horizonte_amostra;
 		for (IdEstagio idEstagio = a_idEstagioInicial; idEstagio <= a_idEstagioFinal; idEstagio++) {
 			const Periodo periodo = getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio, Periodo());
-			horizonte_amostra.addElemento(periodo, SmartEnupla<IdRealizacao, double>(IdRealizacao_1, std::vector<double>(IdRealizacao(getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int())), NAN)));
+			if (idEstagio >= getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio()))
+				horizonte_amostra.addElemento(periodo, SmartEnupla<IdRealizacao, double>(IdRealizacao_1, std::vector<double>(IdRealizacao(getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int())), NAN)));
 		}
 
 		return horizonte_amostra;
@@ -581,7 +660,8 @@ SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> Dados::getHorizonteEspac
 		SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> horizonte_amostra;
 		for (IdEstagio idEstagio = a_idEstagioInicial; idEstagio <= a_idEstagioFinal; idEstagio++) {
 			const Periodo periodo = getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio, Periodo());
-			horizonte_amostra.addElemento(periodo, SmartEnupla<IdRealizacao, double>(IdRealizacao_1, std::vector<double>(a_maiorIdRealizacao, NAN)));
+			if (idEstagio >= getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio()))
+				horizonte_amostra.addElemento(periodo, SmartEnupla<IdRealizacao, double>(IdRealizacao_1, std::vector<double>(a_maiorIdRealizacao, NAN)));
 		}
 
 		return horizonte_amostra;
@@ -784,7 +864,7 @@ void Dados::validaTermeletrica() {
 
 		const IdTermeletrica maiorIdTermeletrica = getMaiorId(IdTermeletrica());
 
-		for (IdTermeletrica idTermeletrica = getMenorId(IdTermeletrica()); idTermeletrica <= maiorIdTermeletrica; vetorTermeletrica.incr(idTermeletrica)) {
+		for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
 
 			const bool considerar_usina = getAtributo(idTermeletrica, AttComumTermeletrica_considerar_usina, bool());
 
@@ -873,7 +953,7 @@ void Dados::validaTermeletrica() {
 
 			} // if (considerar_usina){
 
-		} // for (IdTermeletrica idTermeletrica = getMenorId(IdTermeletrica()); idTermeletrica <= maiorIdTermeletrica; vetorTermeletrica.incr(idTermeletrica)) {
+		} // for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaTermeletrica(): \n" + std::string(erro.what())); }
@@ -908,7 +988,7 @@ void Dados::validaUnidadeUTE() {
 
 		const int numeroPeriodos = getSizeVetor(AttVetorDados_horizonte_estudo);
 
-		for (IdTermeletrica idUTE = getMenorId(IdTermeletrica()); idUTE <= maiorIdTermeletrica; vetorTermeletrica.incr(idUTE)) {
+		for (IdTermeletrica idUTE = IdTermeletrica_1; idUTE <= maiorIdTermeletrica; idUTE++) {
 
 			const bool  considerar_usina = getAtributo(idUTE, AttComumTermeletrica_considerar_usina, bool());
 
@@ -957,7 +1037,7 @@ void Dados::validaUnidadeUTE() {
 
 			} // if (considerar_usina) {
 
-		} //for (IdTermeletrica idUTE = getMenorId(IdTermeletrica()); idUTE <= maiorIdTermeletrica; vetorTermeletrica.incr(idUTE)) {
+		} //for (IdTermeletrica idUTE = IdTermeletrica_1; idUTE <= maiorIdTermeletrica; idUTE++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaUnidadeUTE(): \n" + std::string(erro.what())); }
@@ -968,7 +1048,7 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calculo_att_operacionais = false;
 
@@ -1305,9 +1385,6 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 		//
 		//
 
-		bool alpha_cvar_redefinido = false;
-		bool lambda_cvar_redefinido = false;
-
 		if (getAtributo(AttComumDados_tipo_aversao_a_risco, TipoAversaoRisco()) == TipoAversaoRisco_CVAR) {
 
 			if (getSizeVetor(AttVetorDados_alpha_CVAR) == 0) {
@@ -1321,47 +1398,6 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 			}
 
 		} // if (getAtributo(AttComumDados_tipo_aversao_a_risco, TipoAversaoRisco()) == TipoAversaoRisco_CVAR){
-
-		else {
-
-			if (getSizeVetor(AttVetorDados_lambda_CVAR) > 0) {
-
-				for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-					const double lambda = getElementoVetor(AttVetorDados_lambda_CVAR, idEstagio, double());
-
-					if (lambda > 0.0) {
-						lambda_cvar_redefinido = true;
-						break;
-					}
-
-				} // for (IdEstagio idEstagio = estagio_inicial; idEstagio < estagio_final; idEstagio++) {
-			}
-
-			if ((getSizeVetor(AttVetorDados_lambda_CVAR) == 0) || (lambda_cvar_redefinido)) {
-				setVetor_forced(AttVetorDados_lambda_CVAR, SmartEnupla<IdEstagio, double>(estagio_inicial, std::vector<double>(estagio_final, 0.0)));
-				lambda_cvar_redefinido = true;
-			}
-
-			if (getSizeVetor(AttVetorDados_alpha_CVAR) > 0) {
-
-				for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-					const double alpha = getElementoVetor(AttVetorDados_alpha_CVAR, idEstagio, double());
-
-					if (alpha > 0.0) {
-						alpha_cvar_redefinido = true;
-						break;
-					}
-
-				} // for (IdEstagio idEstagio = estagio_inicial; idEstagio < estagio_final; idEstagio++) {
-			}
-
-			if ((getSizeVetor(AttVetorDados_alpha_CVAR) == 0) || (alpha_cvar_redefinido)) {
-				setVetor_forced(AttVetorDados_alpha_CVAR, SmartEnupla<IdEstagio, double>(estagio_inicial, std::vector<double>(estagio_final, 0.0)));
-				alpha_cvar_redefinido = true;
-			}
-		}
 
 
 		if (idProcesso == IdProcesso_mestre) {
@@ -1384,22 +1420,6 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 
 		a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
 
-		if ((!calculo_att_operacionais) && (!a_imprimir_atributos_sem_recarregar)) {
-			if (idProcesso == IdProcesso_mestre) {
-
-				a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
-
-				a_entradaSaidaDados.setAppendArquivo(false);
-
-				if (lambda_cvar_redefinido) {
-					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_lambda_CVAR);
-					a_entradaSaidaDados.setAppendArquivo(true);
-				}
-				if (alpha_cvar_redefinido)
-					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_alpha_CVAR);
-			}
-		}
-
 		if ((calculo_att_operacionais) || (a_imprimir_atributos_sem_recarregar)) {
 
 			if (idProcesso == IdProcesso_mestre) {
@@ -1412,8 +1432,10 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 				a_entradaSaidaDados.setAppendArquivo(true);
 				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_numero_aberturas_solucao_proxy);
 				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_cortes_multiplos);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_lambda_CVAR);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_alpha_CVAR);
+				if (getAtributo(AttComumDados_tipo_aversao_a_risco, TipoAversaoRisco()) == TipoAversaoRisco_CVAR) {
+					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_lambda_CVAR);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("DADOS_AttVetorOperacional_PorIdEstagio.csv", *this, estagio_inicial, estagio_final, AttVetorDados_alpha_CVAR);
+				} // if (getAtributo(AttComumDados_tipo_aversao_a_risco, TipoAversaoRisco()) == TipoAversaoRisco_CVAR) {
 
 				a_entradaSaidaDados.setAppendArquivo(false);
 				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("DADOS_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, periodo_inicial_horizonte_estudo, periodo_final_horizonte_estudo, IdPatamarCarga_1, maiorIdPatamarCarga_horizonte_estudo, AttMatrizDados_percentual_duracao_patamar_carga);
@@ -1427,6 +1449,8 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 					std::vector<AttComumDados> attComumDados_impressao;
 					for (AttComumDados attComumDados = AttComumDados(AttComumDados_Nenhum + 1); attComumDados < AttComumDados_Excedente; attComumDados++) {
 						if (attComumDados == AttComumDados_idDados) {}
+						else if (attComumDados == AttComumDados_maior_processo) {}
+						else if (attComumDados == AttComumDados_idProcesso) {}
 						else if (attComumDados == AttComumDados_numero_aberturas) {}
 						else if (attComumDados == AttComumDados_alpha_CVAR) {}
 						else if (attComumDados == AttComumDados_lambda_CVAR) {}
@@ -1435,7 +1459,10 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 						else if (attComumDados == AttComumDados_numero_periodos_avaliacao_geracao_cenario_hidrologico) {}
 						else if (attComumDados == AttComumDados_periodo_tendencia_hidrologica_historica) {}
 						else if (attComumDados == AttComumDados_periodo_historico_geracao_cenario_hidrologico) {}
+						else if (attComumDados == AttComumDados_numero_processos_paralelos) {}
 						else if (attComumDados == AttComumDados_numero_maximo_tentativas_resolucao) {}
+						else if (attComumDados == AttComumDados_maior_cenario_do_processo) {}
+						else if (attComumDados == AttComumDados_menor_cenario_do_processo) {}
 						else if (attComumDados == AttComumDados_diretorio_entrada_dados) {}
 						else if (attComumDados == AttComumDados_exibir_na_tela_resultado_solver) {}
 						else if (attComumDados == AttComumDados_calcular_cenario_hidrologico_pre_otimizacao) {}
@@ -1471,8 +1498,8 @@ void Dados::validacao_operacional_Dados(EntradaSaidaDados a_entradaSaidaDados, c
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -1516,7 +1543,7 @@ void Dados::validacao_operacional_Intercambio_Hidraulico(EntradaSaidaDados a_ent
 		bool recarregar_atributo = false;
 
 		// ID PROCESSO
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		const IdIntercambioHidraulico maiorIdIntercambioHidraulico = getMaiorId(IdIntercambioHidraulico());
 
@@ -1633,8 +1660,8 @@ void Dados::validacao_operacional_Intercambio_Hidraulico(EntradaSaidaDados a_ent
 			if (true) {
 				int barreira = 0;
 
-				if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+				if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 						MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 				}
 				else
@@ -1681,7 +1708,7 @@ void Dados::validacao_operacional_UsinasElevatorias(EntradaSaidaDados a_entradaS
 		bool recarregar_atributo = false;
 
 		// ID PROCESSO
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		const IdUsinaElevatoria maiorIdUsinaElevatoria = getMaiorId(IdUsinaElevatoria());
 
@@ -1704,22 +1731,13 @@ void Dados::validacao_operacional_UsinasElevatorias(EntradaSaidaDados a_entradaS
 
 			if (getSize1Matriz(idUsinaElevatoria, AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_minima) == 0) {
 
-				if (getSizeVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_minima) == 0) {
-
-
-					for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
-							vetorUsinaElevatoria.att(idUsinaElevatoria).addElemento(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_minima, periodo, idPatamarCarga_aux, getAtributo(idUsinaElevatoria, AttComumUsinaElevatoria_vazao_bombeada_disponivel_minima, double()));
-
-					}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-				}
+				if (getSizeVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_minima) == 0)
+					vetorUsinaElevatoria.att(idUsinaElevatoria).setMatriz(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_minima, SmartEnupla<Periodo, SmartEnupla<IdPatamarCarga, double>>(horizonte_estudo, SmartEnupla<IdPatamarCarga, double>(IdPatamarCarga_1, std::vector<double>(maiorIdPatamarCarga_horizonte, getAtributo(idUsinaElevatoria, AttComumUsinaElevatoria_vazao_bombeada_disponivel_minima, double())))));
 				else {
 
 					for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
 
-						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
+						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= maiorIdPatamarCarga_horizonte; idPatamarCarga_aux++)
 							vetorUsinaElevatoria.att(idUsinaElevatoria).addElemento(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_minima, periodo, idPatamarCarga_aux, getElementoVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_minima, periodo, double()));
 
 					}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
@@ -1732,22 +1750,13 @@ void Dados::validacao_operacional_UsinasElevatorias(EntradaSaidaDados a_entradaS
 			
 			if (getSize1Matriz(idUsinaElevatoria, AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_maxima) == 0) {
 
-				if (getSizeVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_maxima) == 0) {
-
-
-					for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
-							vetorUsinaElevatoria.att(idUsinaElevatoria).addElemento(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_maxima, periodo, idPatamarCarga_aux, getAtributo(idUsinaElevatoria, AttComumUsinaElevatoria_vazao_bombeada_disponivel_maxima, double()));
-
-					}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-				}
+				if (getSizeVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_maxima) == 0)
+					vetorUsinaElevatoria.att(idUsinaElevatoria).setMatriz(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_maxima, SmartEnupla<Periodo, SmartEnupla<IdPatamarCarga, double>>(horizonte_estudo, SmartEnupla<IdPatamarCarga, double>(IdPatamarCarga_1, std::vector<double>(maiorIdPatamarCarga_horizonte, getAtributo(idUsinaElevatoria, AttComumUsinaElevatoria_vazao_bombeada_disponivel_maxima, double())))));
 				else {
 
 					for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
 
-						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
+						for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= maiorIdPatamarCarga_horizonte; idPatamarCarga_aux++)
 							vetorUsinaElevatoria.att(idUsinaElevatoria).addElemento(AttMatrizUsinaElevatoria_vazao_bombeada_disponivel_maxima, periodo, idPatamarCarga_aux, getElementoVetor(idUsinaElevatoria, AttVetorUsinaElevatoria_vazao_bombeada_disponivel_maxima, periodo, double()));
 
 					}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
@@ -1870,8 +1879,8 @@ void Dados::validacao_operacional_UsinasElevatorias(EntradaSaidaDados a_entradaS
 			if (true) {
 				int barreira = 0;
 
-				if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+				if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 						MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 				}
 				else
@@ -1909,24 +1918,22 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 		//MAIOR ID TERMELETRICA
 		const IdTermeletrica maiorIdTermeletrica = getMaiorId(IdTermeletrica());
-		const IdTermeletrica menorIdTermeletrica = getMenorId(IdTermeletrica());
-
-		const int numIdTermeletrica = int(maiorIdTermeletrica - menorIdTermeletrica) + 1;
 
 		bool recarregar_AttVetorReservatorio_PorIdMes = false;
 		bool recarregar_AttVetorReservatorio_PorPeriodo = false;
 		bool recarregar_AttVetorTermeletrica_PorPeriodo = false;
+		bool recarregar_AttVetorTermeletrica_COMANDO_PorPeriodo = false;
 		bool recarregar_AttVetorTermeletrica_PorInteiro = false;
-		bool recarregar_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga = false;
 		bool recarregar_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga = false;
 		bool recarregar_AttVetorUnidadeUTE_PorPeriodo = false;
 		bool recarregar_AttMatrizUnidadeUTE_PorPeriodoPorIdPatamarCarga = false;
 		bool impresso_AttComumUnidadeUTE = false;
 		bool impresso_AttComumTermeletrica = false;
 
+		SmartEnupla<IdTermeletrica, bool> impresso_AttVetorTermeletrica_COMANDO_PorPeriodo(IdTermeletrica_1, std::vector<bool>(maiorIdTermeletrica, false));
+
 		std::vector<bool> impresso_AttVetorTermeletrica_PorPeriodo(3, false);
 		std::vector<bool> impresso_AttVetorTermeletrica_PorInteiro(2, false);
-		std::vector<bool> impresso_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga(2, false);
 		std::vector<bool> impresso_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga(2, false);
 		std::vector<bool> impresso_AttMatrizTermeletrica_PorIdCenarioPorPeriodo(2, false);
 		std::vector<bool> impresso_AttVetorUnidadeUTE_PorInteiro(2, false);
@@ -1934,14 +1941,16 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 		std::vector<bool> impresso_AttMatrizUnidadeUTE_PorPeriodoPorIdPatamarCarga(2, false);
 
 		// SMART ENUPLA AUXILIARES
-		SmartEnupla<IdTermeletrica, SmartEnupla<AttVetorTermeletrica, PreencherAtributo>> preencher_AttVetorTermeletrica(menorIdTermeletrica, std::vector<SmartEnupla<AttVetorTermeletrica, PreencherAtributo>>(numIdTermeletrica, SmartEnupla<AttVetorTermeletrica, PreencherAtributo>()));
-		SmartEnupla<IdTermeletrica, SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>> preencher_AttMatrizTermeletrica(menorIdTermeletrica, std::vector<SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>>(numIdTermeletrica, SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>()));
+		SmartEnupla<IdTermeletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>> preencher_AttVetorReservatorio(IdTermeletrica_1, std::vector<SmartEnupla<AttVetorReservatorio, PreencherAtributo>>(maiorIdTermeletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>()));
 
-		SmartEnupla<IdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>> preencher_AttVetorUnidadeUTE(menorIdTermeletrica, std::vector<SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>>(numIdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>()));
-		SmartEnupla<IdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>> preencher_AttMatrizUnidadeUTE(menorIdTermeletrica, std::vector< SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>>(numIdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>()));
+		SmartEnupla<IdTermeletrica, SmartEnupla<AttVetorTermeletrica, PreencherAtributo>> preencher_AttVetorTermeletrica(IdTermeletrica_1, std::vector<SmartEnupla<AttVetorTermeletrica, PreencherAtributo>>(maiorIdTermeletrica, SmartEnupla<AttVetorTermeletrica, PreencherAtributo>()));
+		SmartEnupla<IdTermeletrica, SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>> preencher_AttMatrizTermeletrica(IdTermeletrica_1, std::vector<SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>>(maiorIdTermeletrica, SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>()));
+
+		SmartEnupla<IdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>> preencher_AttVetorUnidadeUTE(IdTermeletrica_1, std::vector<SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>>(maiorIdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttVetorUnidadeUTE, PreencherAtributo>>()));
+		SmartEnupla<IdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>> preencher_AttMatrizUnidadeUTE(IdTermeletrica_1, std::vector< SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>>(maiorIdTermeletrica, SmartEnupla<IdUnidadeUTE, SmartEnupla<AttMatrizUnidadeUTE, PreencherAtributo>>()));
 
 		// ID PROCESSO
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		// HORIZONTE DE ESTUDO 
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
@@ -1971,8 +1980,15 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 				maiorIdPatamarCarga_horizonte = maiorIdPatamarCarga;
 		} // for (Periodo periodo = periodo_estudo_inicial; periodo <= periodo_final_estudo; horizonte_estudo.incrementarIterador(periodo)) {
 
+		int maior_lag_mensal_potencia_comandada = 0;
+		for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
+			const int lag_mensal_potencia_comandada = getAtributo(idTermeletrica, AttComumTermeletrica_lag_mensal_potencia_disponivel_comandada, int());
+			if (lag_mensal_potencia_comandada > maior_lag_mensal_potencia_comandada)
+				maior_lag_mensal_potencia_comandada = lag_mensal_potencia_comandada;
+		} // for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
 
-		for (IdTermeletrica idTermeletrica = menorIdTermeletrica; idTermeletrica <= maiorIdTermeletrica; vetorTermeletrica.incr(idTermeletrica)) {
+
+		for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
 
 			if (true) {
 				//if (getAtributo(idTermeletrica, AttComumTermeletrica_considerar_usina, bool())) {
@@ -2138,35 +2154,6 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 						preencher_AttMatrizTermeletrica.at(idTermeletrica).at(AttMatrizTermeletrica_potencia_disponivel_maxima) = nao_operacional_informado;
 
 				} // else if (getSize1Matriz(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_maxima) > 0) {
-
-
-				// -------------------------------------
-				//
-				// AttMatrizTermeletrica_potencia_disponivel_comandada
-				//
-				// -------------------------------------
-
-
-				if (getSize1Matriz(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada) > 0) {
-
-					if (getAtributo(idTermeletrica, AttComumTermeletrica_lag_mensal_potencia_disponivel_comandada, int()) == 0)
-						throw std::invalid_argument("O atributo " + getFullString(AttMatrizTermeletrica_potencia_disponivel_comandada) + " nao deve ser informado em " + getFullString(idTermeletrica) + " de " + getFullString(AttComumTermeletrica_lag_mensal_potencia_disponivel_comandada) + " zero.");
-
-					if (getAtributo(AttComumDados_estagio_inicial, IdEstagio()) > IdEstagio_1)
-						throw std::invalid_argument("O atributo " + getFullString(AttMatrizTermeletrica_potencia_disponivel_comandada) + " nao deve ser informado em " + getFullString(idTermeletrica) + " pois estudo inicia em " + getFullString(getAtributo(AttComumDados_estagio_inicial, IdEstagio())) + ".");
-
-					const Periodo periodo_inicial_potencia_disponivel_comandada = getIterador1Inicial(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada, Periodo());
-					const Periodo periodo_final_potencia_disponivel_comandada = getIterador1Final(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada, Periodo());
-
-					if (((periodo_inicial_potencia_disponivel_comandada <= periodo_estudo_inicial) || (periodo_inicial_potencia_disponivel_comandada.sobreposicao(periodo_estudo_inicial) > 0.0)) && \
-						((periodo_final_potencia_disponivel_comandada >= periodo_estudo_inicial) || (periodo_final_potencia_disponivel_comandada.sobreposicao(periodo_estudo_inicial) > 0.0))) {
-					}
-					else
-						throw std::invalid_argument("O periodo inicial do atributo " + getFullString(AttMatrizTermeletrica_potencia_disponivel_comandada) + " em " + getFullString(idTermeletrica) + " deve iniciar com horizonte de estudo.");
-
-					preencher_AttMatrizTermeletrica.at(idTermeletrica).at(AttMatrizTermeletrica_potencia_disponivel_comandada) = nao_operacional_informado;
-
-				} // if (getSize1Matriz(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada) > 0) {
 
 
 				// -----------------------------------------------
@@ -2910,13 +2897,12 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 				} // if (true){
 
-				
 				// ----------------------------------------
 				//
 				// AttVetorTermeletrica_custo_de_operacao
 				//
 				// ---------------------------------------
-				/*
+
 				if ((preencher_AttMatrizTermeletrica.at(idTermeletrica).at(AttMatrizTermeletrica_custo_de_operacao) == sim_premissa) || (preencher_AttMatrizTermeletrica.at(idTermeletrica).at(AttMatrizTermeletrica_custo_de_operacao) == sim_operacional)) {
 
 					//
@@ -2959,7 +2945,7 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 				}
 
 				validarTermeletricaComandada(idTermeletrica, preencher_AttVetorTermeletrica.at(idTermeletrica), preencher_AttMatrizTermeletrica.at(idTermeletrica), a_imprimir_atributos_sem_recarregar);
-				*/
+
 				// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 				//
 				//                                                                                            Impress�o de Atributos
@@ -3007,15 +2993,43 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 						else if ((preencher_AttVetorTermeletrica.at(idTermeletrica).at(attVetorTermeletrica) == sim_operacional) || ((preencher_AttVetorTermeletrica.at(idTermeletrica).at(attVetorTermeletrica) == nao_operacional_informado) && (a_imprimir_atributos_sem_recarregar))) {
 
-							a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+							if ((attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_pre_comandada) || (attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_comandada_minima) || (attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_comandada_maxima)) {
 
-							a_entradaSaidaDados.setAppendArquivo(impresso_AttVetorTermeletrica_PorPeriodo.at(1));
-							a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("TERMELETRICA_AttVetorOperacional_PorPeriodo.csv", idTermeletrica, *this, periodo_estudo_inicial, periodo_final_estudo, attVetorTermeletrica);
-							impresso_AttVetorTermeletrica_PorPeriodo.at(1) = true;
+								const int codigo_usina = getAtributo(idTermeletrica, AttComumTermeletrica_codigo_usina, int());
 
-							if (!a_imprimir_atributos_sem_recarregar) {
-								vetorTermeletrica.att(idTermeletrica).clear(attVetorTermeletrica);
-								recarregar_AttVetorTermeletrica_PorPeriodo = true;
+								if (attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_pre_comandada) {
+									a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+									a_entradaSaidaDados.setAppendArquivo(false);
+									a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("TERMELETRICA_PRE_COMANDO_" + getString(AttComumTermeletrica_codigo_usina) + "_" + getString(codigo_usina) + "_AttVetorOperacional_PorPeriodo.csv", idTermeletrica, *this, attVetorTermeletrica);
+								}
+								else {
+									a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+									a_entradaSaidaDados.setAppendArquivo(impresso_AttVetorTermeletrica_COMANDO_PorPeriodo.getElemento(idTermeletrica));
+									a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("TERMELETRICA_COMANDO_" + getString(AttComumTermeletrica_codigo_usina) + "_" + getString(codigo_usina) + "_AttVetorOperacional_PorPeriodo.csv", idTermeletrica, *this, attVetorTermeletrica);
+									impresso_AttVetorTermeletrica_COMANDO_PorPeriodo.setElemento(idTermeletrica, true);
+
+									if (!a_imprimir_atributos_sem_recarregar) {
+										vetorTermeletrica.att(idTermeletrica).clear(attVetorTermeletrica);
+										recarregar_AttVetorTermeletrica_COMANDO_PorPeriodo = true;
+									}
+
+								}
+
+							} // if ((attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_pre_comandada) || (attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_comandada_minima) || (attVetorTermeletrica == AttVetorTermeletrica_potencia_disponivel_comandada_maxima)) {
+
+							else {
+
+								a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+
+								a_entradaSaidaDados.setAppendArquivo(impresso_AttVetorTermeletrica_PorPeriodo.at(1));
+								a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("TERMELETRICA_AttVetorOperacional_PorPeriodo.csv", idTermeletrica, *this, periodo_estudo_inicial, periodo_final_estudo, attVetorTermeletrica);
+								impresso_AttVetorTermeletrica_PorPeriodo.at(1) = true;
+
+								if (!a_imprimir_atributos_sem_recarregar) {
+									vetorTermeletrica.att(idTermeletrica).clear(attVetorTermeletrica);
+									recarregar_AttVetorTermeletrica_PorPeriodo = true;
+								}
+
 							}
 
 						} // else if ((preencher_AttVetorTermeletrica.at(idTermeletrica).at(attVetorTermeletrica) == sim_operacional) || ((preencher_AttVetorTermeletrica.at(idTermeletrica).at(attVetorTermeletrica) == nao_operacional_informado) && (a_imprimir_atributos_sem_recarregar))) {
@@ -3044,37 +3058,15 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 						else if ((preencher_AttMatrizTermeletrica.at(idTermeletrica).at(attMatrizTermeletrica) == sim_operacional) || ((preencher_AttMatrizTermeletrica.at(idTermeletrica).at(attMatrizTermeletrica) == nao_operacional_informado) && (a_imprimir_atributos_sem_recarregar))) {
 
-							if (attMatrizTermeletrica == AttMatrizTermeletrica_potencia_disponivel_comandada) {
+							a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
 
-								a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+							a_entradaSaidaDados.setAppendArquivo(impresso_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga.at(1));
+							a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("TERMELETRICA_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", idTermeletrica, *this, periodo_estudo_inicial, periodo_final_estudo, IdPatamarCarga_1, maiorIdPatamarCarga_horizonte, attMatrizTermeletrica);
+							impresso_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga.at(1) = true;
 
-								a_entradaSaidaDados.setAppendArquivo(impresso_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga.at(1));
-
-								const Periodo periodo_comandada_inicial = getIterador1Inicial(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada, Periodo());
-								const Periodo periodo_comandada_final   = getIterador1Final(idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_comandada, Periodo());
-
-								a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("TERMELETRICA_COMANDO_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", idTermeletrica, *this, periodo_comandada_inicial, periodo_comandada_final, IdPatamarCarga_1, maiorIdPatamarCarga_horizonte, attMatrizTermeletrica);
-								impresso_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga.at(1) = true;
-
-								if (!a_imprimir_atributos_sem_recarregar) {
-									vetorTermeletrica.att(idTermeletrica).clear(attMatrizTermeletrica);
-									recarregar_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga = true;
-								}
-							}
-
-							else {
-
-								a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
-
-								a_entradaSaidaDados.setAppendArquivo(impresso_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga.at(1));
-								a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("TERMELETRICA_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", idTermeletrica, *this, periodo_estudo_inicial, periodo_final_estudo, IdPatamarCarga_1, maiorIdPatamarCarga_horizonte, attMatrizTermeletrica);
-								impresso_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga.at(1) = true;
-
-								if (!a_imprimir_atributos_sem_recarregar) {
-									vetorTermeletrica.att(idTermeletrica).clear(attMatrizTermeletrica);
-									recarregar_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga = true;
-								}
-
+							if (!a_imprimir_atributos_sem_recarregar) {
+								vetorTermeletrica.att(idTermeletrica).clear(attMatrizTermeletrica);
+								recarregar_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga = true;
 							}
 
 						} // else if ((preencher_AttMatrizTermeletrica.at(idTermeletrica).at(attMatrizTermeletrica) == sim_operacional) || ((preencher_AttMatrizTermeletrica.at(idTermeletrica).at(attMatrizTermeletrica) == nao_operacional_informado) && (a_imprimir_atributos_sem_recarregar))) {
@@ -3248,7 +3240,7 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 			} //if (getAtributo(idTermeletrica, AttComumTermeletrica_considerar_usina, bool())) {
 
 
-		} // for (IdTermeletrica idTermeletrica = getMenorId(IdTermeletrica()); idTermeletrica <= maiorIdTermeletrica; vetorTermeletrica.incr(idTermeletrica)) {
+		} // for (IdTermeletrica idTermeletrica = IdTermeletrica_1; idTermeletrica <= maiorIdTermeletrica; idTermeletrica++) {
 
 
 		// VALIDA AS UNIDADES TERMEL�TRICAS
@@ -3263,8 +3255,8 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 			if (true) {
 				int barreira = 0;
 
-				if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+				if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 						MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 				}
 				else
@@ -3278,6 +3270,9 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 			a_entradaSaidaDados.setDiretorioEntrada(a_diretorio_att_operacional);
 
+			if (recarregar_AttVetorTermeletrica_COMANDO_PorPeriodo)
+				carregarArquivosEntrada_TERMELETRICA_COMANDO(a_entradaSaidaDados, false, true);
+
 			if (recarregar_AttVetorTermeletrica_PorPeriodo)
 				a_entradaSaidaDados.carregarArquivoCSV_AttVetor("TERMELETRICA_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_membro);
 
@@ -3286,9 +3281,6 @@ void Dados::validacao_operacional_Termeletrica(EntradaSaidaDados a_entradaSaidaD
 
 			if (recarregar_AttMatrizTermeletrica_PorPeriodoPorIdPatamarCarga)
 				a_entradaSaidaDados.carregarArquivoCSV_AttMatriz("TERMELETRICA_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
-
-			if (recarregar_AttMatrizTermeletrica_COMANDO_PorPeriodoPorIdPatamarCarga)
-				a_entradaSaidaDados.carregarArquivoCSV_AttMatriz("TERMELETRICA_COMANDO_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
 
 			if (recarregar_AttVetorUnidadeUTE_PorPeriodo)
 				a_entradaSaidaDados.carregarArquivoCSV_AttVetor("TERMELETRICA_UNIDADE_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_membroMembroMembro);
@@ -3317,10 +3309,9 @@ void Dados::validaHidreletrica() {
 		const Periodo periodo_estudo_inicial = horizonte_estudo.getIteradorInicial();
 		const Periodo periodo_final_estudo = horizonte_estudo.getIteradorFinal();
 
-		const IdHidreletrica menorIdHidreletrica = getMenorId(IdHidreletrica());
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			const TipoDetalhamentoProducaoHidreletrica tipo_detalhamento_producao = getAtributo(idHidreletrica, AttComumHidreletrica_tipo_detalhamento_producao, TipoDetalhamentoProducaoHidreletrica());
 
@@ -3428,7 +3419,7 @@ void Dados::validaHidreletrica() {
 
 			} // for (Periodo periodo = periodo_estudo_inicial; periodo <= periodo_final_estudo; horizonte_estudo.incrementarIterador(periodo)) {
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaHidreletrica(): \n" + std::string(erro.what())); }
@@ -3442,7 +3433,7 @@ void Dados::validaDefluencia() {
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			if (vetorHidreletrica.att(idHidreletrica).vetorDefluencia.isInstanciado(IdDefluencia_passada)) {
 
@@ -3471,7 +3462,7 @@ void Dados::validaDefluencia() {
 
 			}//else if(getAtributo(idHidreletrica, AttComumHidreletrica_tempo_viagem_agua, int()) > 0) {
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaDefluencia(): \n" + std::string(erro.what())); }
@@ -3495,6 +3486,210 @@ void Dados::valida_considerar_tempo_viagem_agua(const IdHidreletrica a_idHidrele
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::valida_considerar_tempo_viagem_agua(): " + getFullString(a_idHidreletrica) + std::string(erro.what())); }
 } // void Dados::validaHidreletrica(){
+
+void Dados::validarTermeletricaComandada(const IdTermeletrica a_idTermeletrica, SmartEnupla<AttVetorTermeletrica, PreencherAtributo>& a_preencher_AttVetorTermeletrica, SmartEnupla<AttMatrizTermeletrica, PreencherAtributo>& a_preencher_AttMatrizTermeletrica, const bool a_imprimir_atributos_sem_recarregar) {
+
+	try {
+
+		const int lag_mensal = getAtributo(a_idTermeletrica, AttComumTermeletrica_lag_mensal_potencia_disponivel_comandada, int());
+
+		if ((lag_mensal == 0) && (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada) == 0) && (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima) == 0) && (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_maxima) == 0))
+			return;
+
+		if ((lag_mensal == 0) && ((getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada) > 0) || (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima) > 0) || (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_maxima) > 0)))
+			throw std::invalid_argument("Para " + getFullString(AttComumTermeletrica_lag_mensal_potencia_disponivel_comandada) + " nulo, nao devera haver elementos em " + getFullString(AttVetorTermeletrica_potencia_disponivel_pre_comandada) + ", " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + ", " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + ".");
+
+		if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima) != getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_maxima))
+			throw std::invalid_argument("Os atributos " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem possuir o mesmo numero de elementos.");
+
+		const Periodo periodo_inicial_horizonte_estudo = getMenorPeriodoHorizonteEstudo();
+		const Periodo periodo_final_horizonte_estudo = getMaiorPeriodoHorizonteEstudo();
+
+		if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima) > 0) {
+
+			if (getIteradorInicial(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo()) != getIteradorInicial(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_maxima, Periodo()))
+				throw std::invalid_argument("Os iteradores iniciais de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem ser os mesmos.");
+
+			if (getIteradorFinal(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo()) != getIteradorFinal(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_maxima, Periodo()))
+				throw std::invalid_argument("Os iteradores finais de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem ser os mesmos.");
+
+			const Periodo periodo_inicial_potencia_disponivel_comandada_minima = getIteradorInicial(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo());
+			const Periodo periodo_final_potencia_disponivel_comandada_minima = getIteradorFinal(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo());
+
+			SmartEnupla<Periodo, double> horizonte_potencia_disponivel_comandada_minima = getVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima, Periodo(), double());
+
+			for (Periodo periodo = periodo_inicial_potencia_disponivel_comandada_minima; periodo <= periodo_final_potencia_disponivel_comandada_minima; horizonte_potencia_disponivel_comandada_minima.incrementarIterador(periodo)) {
+				if (periodo > periodo_inicial_potencia_disponivel_comandada_minima) {
+					if (periodo.getTipoPeriodo() != TipoPeriodo_mensal)
+						throw std::invalid_argument("O segundo periodo em diante de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem ser do tipo mensal.");
+				} // if (periodo > periodo_inicial_potencia_disponivel_comandada_minima) {
+			} // for (Periodo periodo = periodo_inicial_potencia_disponivel_comandada_minima; periodo <= periodo_final_potencia_disponivel_comandada_minima; horizonte_potencia_disponivel_comandada_minima.incrementarIterador(periodo)) {
+
+			if (Periodo(TipoPeriodo_minuto, periodo_final_horizonte_estudo + 1) > Periodo(TipoPeriodo_minuto, periodo_final_potencia_disponivel_comandada_minima + 1))
+				throw std::invalid_argument("Os iteradores finais de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem ao menos encerrar com o horizonte de estudo");
+
+			if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada) > 0) {
+				const Periodo periodo_final_potencia_disponivel_pre_comandada = getIteradorFinal(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada, Periodo());
+				if (Periodo(TipoPeriodo_minuto, periodo_final_potencia_disponivel_pre_comandada + 1) != Periodo(TipoPeriodo_minuto, periodo_inicial_potencia_disponivel_comandada_minima))
+					throw std::invalid_argument("O iterador inicial de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " deve ser sequencial ao iterador final de " + getFullString(AttVetorTermeletrica_potencia_disponivel_pre_comandada) + ".");
+
+				a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_pre_comandada) = nao_operacional_informado;
+
+			} // if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada) > 0) {
+
+			else {
+
+				if (Periodo(TipoPeriodo_minuto, periodo_inicial_horizonte_estudo) < Periodo(TipoPeriodo_minuto, periodo_inicial_potencia_disponivel_comandada_minima))
+					throw std::invalid_argument("Caso nao haja elementos em " + getFullString(AttVetorTermeletrica_potencia_disponivel_pre_comandada) + " os iteradores iniciais de " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_minima) + " e " + getFullString(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) + " devem inicial com o horizonte de estudo");
+
+				a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_pre_comandada) = nao_sem_utilizacao;
+
+			}
+
+			a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_minima) = nao_operacional_informado;
+			a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) = nao_operacional_informado;
+
+		} // if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_comandada_minima) > 0) {
+
+		else {
+
+			Periodo periodo_final_pre_comandado = getIteradorInicial(AttVetorDados_horizonte_estudo, Periodo()) - 1;
+
+			if (getSizeVetor(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada) == 0)
+				a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_pre_comandada) = nao_sem_utilizacao;
+			else {
+				a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_pre_comandada) = nao_operacional_informado;
+				periodo_final_pre_comandado = getIteradorFinal(a_idTermeletrica, AttVetorTermeletrica_potencia_disponivel_pre_comandada, Periodo());
+			}
+
+			a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_minima) = nao_sem_utilizacao;
+			a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) = nao_sem_utilizacao;
+
+			if ((periodo_final_pre_comandado.getHora() != IdHor_0) && (periodo_final_pre_comandado.getMinuto() != IdMin_0))
+				throw std::invalid_argument("Periodo final de " + getFullString(AttVetorTermeletrica_potencia_disponivel_pre_comandada) + " deve iniciar em 0Horas e 0Minutos.");
+
+			const Periodo periodo_mensal_inicial_comandado = Periodo(Periodo(periodo_final_pre_comandado + 1).getMes(), Periodo(periodo_final_pre_comandado + 1).getAno());
+
+			const Periodo periodo_minuto_final = Periodo(TipoPeriodo_minuto, periodo_final_horizonte_estudo + 1) - 1;
+
+			const Periodo periodo_mensal_final_comandado = Periodo(TipoPeriodo_mensal, periodo_minuto_final.getMes(), periodo_minuto_final.getAno());
+
+			if (periodo_mensal_inicial_comandado <= periodo_mensal_final_comandado) {
+
+				double sobreposicao = 0.0;
+
+				Periodo periodo_interface;
+
+				for (periodo_interface = periodo_mensal_inicial_comandado; periodo_interface <= periodo_mensal_final_comandado; periodo_interface++) {
+
+					sobreposicao = periodo_interface.sobreposicao(periodo_final_pre_comandado);
+
+					if (sobreposicao > 0.0)
+						break;
+
+				} // for (Periodo periodo = periodo_mensal_inicial_comandado; periodo <= periodo_mensal_final_comandado; periodo++) {
+
+				if ((sobreposicao == 0.0) && (Periodo(TipoPeriodo_mensal, periodo_final_pre_comandado + 1) != periodo_mensal_inicial_comandado) && (periodo_final_pre_comandado < periodo_mensal_final_comandado))
+					throw std::invalid_argument("Periodo final de " + getFullString(AttVetorTermeletrica_potencia_disponivel_pre_comandada) + " nao compativel com periodo a ser comandada.");
+
+				Periodo periodo_inicial_comandado;
+				Periodo periodo_final_comandado;
+
+				if ((sobreposicao == 0.0) && (Periodo(TipoPeriodo_mensal, periodo_final_pre_comandado + 1) == periodo_mensal_inicial_comandado)) {
+					periodo_inicial_comandado = periodo_mensal_inicial_comandado;
+					periodo_final_comandado = periodo_mensal_final_comandado;
+				}
+
+				else if (sobreposicao > 0.0) {
+
+					periodo_inicial_comandado = Periodo(TipoPeriodo_diario, periodo_final_pre_comandado + 1);
+
+					Periodo periodo_diario = periodo_inicial_comandado;
+
+					int cont = 0;
+					while (true) {
+						if (periodo_diario.getMes() != periodo_inicial_comandado.getMes())
+							break;
+						periodo_diario++;
+						cont++;
+					} // while (true) {
+
+					periodo_inicial_comandado = Periodo(TipoPeriodo(TipoPeriodo_diario - cont + 1), periodo_inicial_comandado);
+
+					if (periodo_mensal_inicial_comandado == periodo_mensal_final_comandado)
+						periodo_final_comandado = periodo_inicial_comandado;
+					else
+						periodo_final_comandado = periodo_mensal_final_comandado;
+
+				} // else if (sobreposicao > 0.0) {
+
+				if (periodo_inicial_comandado.isValido()) {
+
+					SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
+
+					a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_minima) = sim_operacional;
+					a_preencher_AttVetorTermeletrica.at(AttVetorTermeletrica_potencia_disponivel_comandada_maxima) = sim_operacional;
+
+					Periodo periodo_comandado = periodo_inicial_comandado;
+
+					while (true) {
+
+						double potencia_disponivel_comandada_minima = 0.0;
+						double potencia_disponivel_comandada_maxima = 0.0;
+
+						for (Periodo periodo_estudo = horizonte_estudo.getIteradorInicial(); periodo_estudo <= periodo_final_horizonte_estudo; horizonte_estudo.incrementarIterador(periodo_estudo)) {
+
+							const IdPatamarCarga maiorIdPatamarCarga = getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo_estudo, IdPatamarCarga());
+
+							const double sobreposicao = periodo_comandado.sobreposicao(periodo_estudo);
+
+							if (sobreposicao > 0.0) {
+
+								for (IdPatamarCarga idPatamarCarga = IdPatamarCarga_1; idPatamarCarga <= maiorIdPatamarCarga; idPatamarCarga++) {
+
+									const double percentual_duracao_patamar = getElementoMatriz(AttMatrizDados_percentual_duracao_patamar_carga, periodo_estudo, idPatamarCarga, double());
+
+									if (getSize1Matriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_minima) > 0)
+										potencia_disponivel_comandada_minima += sobreposicao * percentual_duracao_patamar * getElementoMatriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_minima, periodo_estudo, idPatamarCarga, double());
+									else
+										potencia_disponivel_comandada_minima += sobreposicao * percentual_duracao_patamar * getElementoVetor(a_idTermeletrica, AttVetorTermeletrica_disponibilidade, periodo_estudo, double()) * getElementoMatriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_minima, periodo_estudo, idPatamarCarga, double());
+
+									if (getSize1Matriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_maxima) > 0)
+										potencia_disponivel_comandada_maxima += sobreposicao * percentual_duracao_patamar * getElementoMatriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_disponivel_maxima, periodo_estudo, idPatamarCarga, double());
+									else
+										potencia_disponivel_comandada_maxima += sobreposicao * percentual_duracao_patamar * getElementoVetor(a_idTermeletrica, AttVetorTermeletrica_disponibilidade, periodo_estudo, double()) * getElementoMatriz(a_idTermeletrica, AttMatrizTermeletrica_potencia_maxima, periodo_estudo, idPatamarCarga, double());
+
+								} // for (IdPatamarCarga idPatamarCarga = IdPatamarCarga_1; idPatamarCarga <= maiorIdPatamarCarga; idPatamarCarga++) {
+
+							} // if (sobreposicao > 0.0) {
+
+						} // for (Periodo periodo_estudo = horizonte_estudo.getIteradorInicial(); periodo_estudo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo_estudo)) {
+
+						vetorTermeletrica.att(a_idTermeletrica).addElemento(AttVetorTermeletrica_potencia_disponivel_comandada_minima, periodo_comandado, potencia_disponivel_comandada_minima);
+						vetorTermeletrica.att(a_idTermeletrica).addElemento(AttVetorTermeletrica_potencia_disponivel_comandada_maxima, periodo_comandado, potencia_disponivel_comandada_maxima);
+
+						if (periodo_comandado == periodo_final_comandado)
+							break;
+						else {
+							if (periodo_comandado == periodo_inicial_comandado)
+								periodo_comandado = Periodo(TipoPeriodo_mensal, periodo_inicial_comandado + 1);
+							else
+								periodo_comandado++;
+						}
+					}
+
+				} // if (periodo_inicial_comandado.isValido()) {
+
+			} // if (periodo_mensal_inicial_comandado <= periodo_mensal_final_comandado) {
+
+
+
+		} // else {
+
+	} // try{
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validarTermeletricaComandada(" + getFullString(a_idTermeletrica) + "): \n" + std::string(erro.what())); }
+
+} // void Dados::validarTermeletricaComandada(const IdTermeletrica a_idTermeletrica){
 
 bool Dados::isRestricaoEletrica_simples(const IdRestricaoEletrica a_idRestricaoEletrica){
 
@@ -3602,7 +3797,7 @@ void Dados::validaPatamarDeficitEmSubmercado() {
 
 		const IdSubmercado maiorIdSubmercado = getMaiorId(IdSubmercado());
 
-		for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado))
+		for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++)
 			validaPatamarDeficitEmSubmercado(idSubmercado);
 
 	} // try{
@@ -3687,7 +3882,7 @@ void Dados::validaConjuntoHidraulicoEmHidreletrica() {
 
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
-		for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maiorIdHidreletrica; vetorHidreletrica.incr(idUHE)) {
+		for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdHidreletrica; idUHE++) {
 
 			const bool  considerar_usina = getAtributo(idUHE, AttComumHidreletrica_considerar_usina, bool());
 
@@ -3706,7 +3901,7 @@ void Dados::validaConjuntoHidraulicoEmHidreletrica() {
 				} // for (IdConjuntoHidraulico idConjuntoHidraulico = IdConjuntoHidraulico_1; idConjuntoHidraulico <= maiorIdConjuntoHidraulico; idConjuntoHidraulico++) {
 
 			} // if (considerar_usina) {
-		} // for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maiorIdHidreletrica; idUHE++) {
+		} // for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdHidreletrica; idUHE++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaConjuntoHidraulicoEmHidreletrica(): \n" + std::string(erro.what())); }
@@ -3729,7 +3924,7 @@ void Dados::validaUnidadeUHE() {
 
 
 
-		for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maiorIdHidreletrica; vetorHidreletrica.incr(idUHE)) {
+		for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdHidreletrica; idUHE++) {
 
 			const bool  considerar_usina = getAtributo(idUHE, AttComumHidreletrica_considerar_usina, bool());
 
@@ -3760,7 +3955,7 @@ void Dados::validaUnidadeUHE() {
 
 			} // if (considerar_usina) {
 
-		} // for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maiorIdHidreletrica; idUHE++) {
+		} // for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdHidreletrica; idUHE++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaUnidadeUHE(): \n" + std::string(erro.what())); }
@@ -3786,7 +3981,7 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 		validaDefluencia();
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
@@ -3852,29 +4047,26 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 		bool recarregar_AttMatrizUnidadeUHE_PorPeriodoPorIdPatamarCarga = false;
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
-		const IdHidreletrica menorIdHidreletrica = getMenorId(IdHidreletrica());
 
-		const int numIdHidreletrica = int(maiorIdHidreletrica - menorIdHidreletrica) + 1;
+		SmartEnupla<IdHidreletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>> preencher_AttVetorReservatorio(IdHidreletrica_1, std::vector<SmartEnupla<AttVetorReservatorio, PreencherAtributo>>(maiorIdHidreletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<AttMatrizReservatorio, PreencherAtributo>> preencher_AttMatrizReservatorio(IdHidreletrica_1, std::vector<SmartEnupla<AttMatrizReservatorio, PreencherAtributo>>(maiorIdHidreletrica, SmartEnupla<AttMatrizReservatorio, PreencherAtributo>()));
 
-		SmartEnupla<IdHidreletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>> preencher_AttVetorReservatorio(menorIdHidreletrica, std::vector<SmartEnupla<AttVetorReservatorio, PreencherAtributo>>(numIdHidreletrica, SmartEnupla<AttVetorReservatorio, PreencherAtributo>()));
-		SmartEnupla<IdHidreletrica, SmartEnupla<AttMatrizReservatorio, PreencherAtributo>> preencher_AttMatrizReservatorio(menorIdHidreletrica, std::vector<SmartEnupla<AttMatrizReservatorio, PreencherAtributo>>(numIdHidreletrica, SmartEnupla<AttMatrizReservatorio, PreencherAtributo>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<AttVetorHidreletrica, PreencherAtributo>> preencher_AttVetorHidreletrica(IdHidreletrica_1, std::vector<SmartEnupla<AttVetorHidreletrica, PreencherAtributo>>(maiorIdHidreletrica, SmartEnupla<AttVetorHidreletrica, PreencherAtributo>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>> preencher_AttMatrizHidreletrica(IdHidreletrica_1, std::vector<SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>>(maiorIdHidreletrica, SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>()));
 
-		SmartEnupla<IdHidreletrica, SmartEnupla<AttVetorHidreletrica, PreencherAtributo>> preencher_AttVetorHidreletrica(menorIdHidreletrica, std::vector<SmartEnupla<AttVetorHidreletrica, PreencherAtributo>>(numIdHidreletrica, SmartEnupla<AttVetorHidreletrica, PreencherAtributo>()));
-		SmartEnupla<IdHidreletrica, SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>> preencher_AttMatrizHidreletrica(menorIdHidreletrica, std::vector<SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>>(numIdHidreletrica, SmartEnupla<AttMatrizHidreletrica, PreencherAtributo>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>> preencher_AttVetorConjuntoHidraulico(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>> preencher_AttMatrizConjuntoHidraulico(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>()));
 
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>> preencher_AttVetorConjuntoHidraulico(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttVetorConjuntoHidraulico, PreencherAtributo>>()));
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>> preencher_AttMatrizConjuntoHidraulico(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<AttMatrizConjuntoHidraulico, PreencherAtributo>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>> preencher_AttVetorUnidadeUHE(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>> preencher_AttMatrizUnidadeUHE(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>()));
 
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>> preencher_AttVetorUnidadeUHE(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorUnidadeUHE, PreencherAtributo>>>()));
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>> preencher_AttMatrizUnidadeUHE(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizUnidadeUHE, PreencherAtributo>>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>> preencher_AttVetorFuncaoProducaoHidreletrica(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>> preencher_AttMatrizFuncaoProducaoHidreletrica(IdHidreletrica_1, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>>(maiorIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>()));
 
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>> preencher_AttVetorFuncaoProducaoHidreletrica(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttVetorFuncaoProducaoHidreletrica, PreencherAtributo>>>()));
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>> preencher_AttMatrizFuncaoProducaoHidreletrica(menorIdHidreletrica, std::vector<SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>>(numIdHidreletrica, SmartEnupla<IdConjuntoHidraulico, SmartEnupla<IdUnidadeUHE, SmartEnupla<AttMatrizFuncaoProducaoHidreletrica, PreencherAtributo>>>()));
-
-		SmartEnupla<IdHidreletrica, SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>> preencher_AttVetorPolinomioJusante(menorIdHidreletrica, std::vector<SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>>(numIdHidreletrica, SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>()));
+		SmartEnupla<IdHidreletrica, SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>> preencher_AttVetorPolinomioJusante(IdHidreletrica_1, std::vector<SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>>(maiorIdHidreletrica, SmartEnupla<IdPolinomioJusante, SmartEnupla<AttVetorPolinomioJusante, PreencherAtributo>>()));
 
 
-		for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			if (getAtributo(idHidreletrica, AttComumHidreletrica_considerar_usina, bool())) {
 
@@ -3898,19 +4090,19 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 					// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 					if ((getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto) > 0) && (getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_taxa_enchimento_volume_morto) > 0))
-						if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, horizonte_estudo.getIteradorInicial(), int()) == 1)
+						if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, horizonte_estudo.getIteradorInicial(), bool()))
 							preencher_AttVetorReservatorio.at(idHidreletrica).at(AttVetorReservatorio_meta_enchimento_volume_morto) = sim_operacional;
 
 
 					if (getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_morto_completo) == 0) {
-						vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setVetor(AttVetorReservatorio_volume_morto_completo, SmartEnupla<Periodo, int>(horizonte_estudo, 1));
+						vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setVetor(AttVetorReservatorio_volume_morto_completo, SmartEnupla<Periodo, bool>(horizonte_estudo, true));
 						preencher_AttVetorReservatorio.at(idHidreletrica).at(AttVetorReservatorio_volume_morto_completo) = sim_premissa;
 					}
 					else
 						preencher_AttVetorReservatorio.at(idHidreletrica).at(AttVetorReservatorio_volume_morto_completo) = nao_operacional_informado;
 
 					if (getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto) == 0) {
-						vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setVetor(AttVetorReservatorio_enchendo_volume_morto, SmartEnupla<Periodo, int>(horizonte_estudo, 1));
+						vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setVetor(AttVetorReservatorio_enchendo_volume_morto, SmartEnupla<Periodo, bool>(horizonte_estudo, false));
 						preencher_AttVetorReservatorio.at(idHidreletrica).at(AttVetorReservatorio_enchendo_volume_morto) = sim_operacional;
 					}
 					else
@@ -3980,12 +4172,12 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 							double volume_util_maximo = (volume_maximo - volume_minimo) * percentual_volume_util_maximo;
 
-							if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_morto_completo, periodo, int()) != 1)
+							if (!getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_morto_completo, periodo, bool()))
 								volume_util_maximo = 0.0;
 
 							// CASO ESTEJA ENCHENDO VOLUME MORTO O VOLUME UTIL � IGUAL AO VOLUME M�XIMO
 							if (getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto) > 0)
-								if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, horizonte_estudo.getIteradorInicial(), int()) == 1)
+								if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, horizonte_estudo.getIteradorInicial(), bool()))
 									vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setElemento(AttVetorReservatorio_volume_util_maximo, periodo, volume_maximo);
 
 							vetorHidreletrica.att(idHidreletrica).vetorReservatorio.att(IdReservatorio_1).setElemento(AttVetorReservatorio_volume_util_maximo, periodo, volume_util_maximo);
@@ -4613,24 +4805,13 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 					if (getSize1Matriz(idHidreletrica, AttMatrizHidreletrica_vazao_desviada_minima) == 0) {
 
-						if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_minima) == 0) {
-
-
-							for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++) {
-									vetorHidreletrica.att(idHidreletrica).addElemento(AttMatrizHidreletrica_vazao_desviada_minima, periodo, idPatamarCarga_aux, getAtributo(idHidreletrica, AttComumHidreletrica_vazao_desviada_minima, double()));
-
-								}//for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++) {
-
-							}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-						}//if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_minima) == 0) {							
+						if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_minima) == 0)
+							vetorHidreletrica.att(idHidreletrica).setMatriz(AttMatrizHidreletrica_vazao_desviada_minima, SmartEnupla<Periodo, SmartEnupla<IdPatamarCarga, double>>(horizonte_estudo, SmartEnupla<IdPatamarCarga, double>(IdPatamarCarga_1, std::vector<double>(maiorIdPatamarCarga_horizonte, getAtributo(idHidreletrica, AttComumHidreletrica_vazao_desviada_minima, double())))));
 						else {
 
 							for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
 
-								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
+								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= maiorIdPatamarCarga_horizonte; idPatamarCarga_aux++)
 									vetorHidreletrica.att(idHidreletrica).addElemento(AttMatrizHidreletrica_vazao_desviada_minima, periodo, idPatamarCarga_aux, getElementoVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_minima, periodo, double()));
 
 							}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
@@ -4651,23 +4832,13 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 					if (getSize1Matriz(idHidreletrica, AttMatrizHidreletrica_vazao_desviada_maxima) == 0) {
 
-						if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_maxima) == 0) {
-
-							for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++) {
-									vetorHidreletrica.att(idHidreletrica).addElemento(AttMatrizHidreletrica_vazao_desviada_maxima, periodo, idPatamarCarga_aux, getAtributo(idHidreletrica, AttComumHidreletrica_vazao_desviada_maxima, double()));
-
-								}//for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++) {
-
-							}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
-
-						}//if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_maxima) == 0) {							
+						if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_maxima) == 0)
+							vetorHidreletrica.att(idHidreletrica).setMatriz(AttMatrizHidreletrica_vazao_desviada_maxima, SmartEnupla<Periodo, SmartEnupla<IdPatamarCarga, double>>(horizonte_estudo, SmartEnupla<IdPatamarCarga, double>(IdPatamarCarga_1, std::vector<double>(maiorIdPatamarCarga_horizonte, getAtributo(idHidreletrica, AttComumHidreletrica_vazao_desviada_maxima, double())))));
 						else {
 
 							for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
 
-								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga_aux++)
+								for (IdPatamarCarga idPatamarCarga_aux = IdPatamarCarga_1; idPatamarCarga_aux <= maiorIdPatamarCarga_horizonte; idPatamarCarga_aux++)
 									vetorHidreletrica.att(idHidreletrica).addElemento(AttMatrizHidreletrica_vazao_desviada_maxima, periodo, idPatamarCarga_aux, getElementoVetor(idHidreletrica, AttVetorHidreletrica_vazao_desviada_maxima, periodo, double()));
 
 							}//for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
@@ -5637,7 +5808,7 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 				// CONDI��O PARA QUANDO A HIDRELETRICA ESTA ENCHENDO VOLUME MORTO
 				for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo))
-					if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, periodo, int()) == 1)
+					if (getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_enchendo_volume_morto, periodo, bool()))
 						for (IdPatamarCarga idPatamarCarga = IdPatamarCarga_1; idPatamarCarga <= getIterador2Final(AttMatrizDados_percentual_duracao_patamar_carga, periodo, IdPatamarCarga()); idPatamarCarga++)
 							vetorHidreletrica.att(idHidreletrica).setElemento(AttMatrizHidreletrica_potencia_maxima, periodo, idPatamarCarga, 0.0);
 
@@ -5734,10 +5905,7 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 						const double volume_util = getElementoVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo, periodo, double());
 
-						if (Reservatorio::isReservatorioDeRegularizacao(periodo, volume_util, vazao_turbinada_maxima))
-							vetorHidreletrica.att(idHidreletrica).addElemento(AttVetorHidreletrica_regularizacao, periodo, 1);
-						else
-							vetorHidreletrica.att(idHidreletrica).addElemento(AttVetorHidreletrica_regularizacao, periodo, 0);
+						vetorHidreletrica.att(idHidreletrica).addElemento(AttVetorHidreletrica_regularizacao, periodo, Reservatorio::isReservatorioDeRegularizacao(periodo, volume_util, vazao_turbinada_maxima));
 
 					} // for (Periodo periodo = periodo_estudo_inicial; periodo <= periodo_final_estudo; horizonte_estudo.incrementarIterador(periodo)) {				
 
@@ -6785,7 +6953,7 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 
 			} // if (getAtributo(idHidreletrica, AttComumHidreletrica_considerar_usina, bool())) {
 
-		} // for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 		instanciaCotaJusanteUsinaJusante();
 		validaHidreletrica();
@@ -6795,8 +6963,8 @@ void Dados::validacao_operacional_Hidreletrica(EntradaSaidaDados a_entradaSaidaD
 			if (true) {
 				int barreira = 0;
 
-				if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+				if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+					for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 						MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 				}
 				else
@@ -6857,7 +7025,7 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_atributos_operacionais_submercado = false;
 		bool calcular_atributos_operacionais_patamar_deficit = false;
@@ -6878,7 +7046,7 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 		validaSubmercado();
 
 		const IdSubmercado maiorIdSubmercado = getMaiorId(IdSubmercado());
-		for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado)) {
+		for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++) {
 
 			if (getSize1Matriz(idSubmercado, AttMatrizSubmercado_demanda) == 0) {
 
@@ -7091,7 +7259,7 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 
 			} // for (IdUsinaNaoSimulada idUsinaNaoSimulada = IdUsinaNaoSimulada_1; idUsinaNaoSimulada <= maiorIdUsinaNaoSimulada; idUsinaNaoSimulada++) {
 
-		} // for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado)) {
+		} // for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++) {
 
 		if (idProcesso == IdProcesso_mestre) {
 
@@ -7109,7 +7277,7 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 						a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_SUBMERCADO_AttVetorPremissa_PorPeriodo.csv", IdSubmercado_Nenhum, *this, periodo_estudo_inicial, periodo_final_estudo, attVetorSubmercado_media);
 						impresso = true;
 
-						for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado))
+						for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++)
 							vetorSubmercado.att(idSubmercado).clear(attVetorSubmercado_media);
 
 					}
@@ -7126,11 +7294,12 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 					if (attVetorPatamarDeficit_media != AttVetorPatamarDeficit_Nenhum) {
 
 						a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_premissa);
+
 						a_entradaSaidaDados.setAppendArquivo(impresso);
 						a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_SUBMERCADO_PATAMAR_DEFICIT_AttVetorPremissa_PorPeriodo.csv", IdSubmercado_Nenhum, IdPatamarDeficit_Nenhum, *this, periodo_estudo_inicial, periodo_final_estudo, attVetorPatamarDeficit_media);
 						impresso = true;
 
-						for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado))
+						for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++)
 							for (IdPatamarDeficit idPatamarDeficit = IdPatamarDeficit_1; idPatamarDeficit <= getMaiorId(idSubmercado, IdPatamarDeficit()); idPatamarDeficit++)
 								vetorSubmercado.att(idSubmercado).vetorPatamarDeficit.att(idPatamarDeficit).clear(attVetorPatamarDeficit_media);
 
@@ -7153,7 +7322,7 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 						a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_SUBMERCADO_USINA_NAO_SIMULADA_AttVetorPremissa_PorPeriodo.csv", IdSubmercado_Nenhum, IdUsinaNaoSimulada_Nenhum, *this, periodo_estudo_inicial, periodo_final_estudo, attVetorUsinaNaoSimulada_media);
 						impresso = true;
 
-						for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado)) {
+						for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++) {
 							for (IdUsinaNaoSimulada idUsinaNaoSimulada = IdUsinaNaoSimulada_1; idUsinaNaoSimulada <= getMaiorId(idSubmercado, IdUsinaNaoSimulada()); idUsinaNaoSimulada++) {
 								if (vetorSubmercado.att(idSubmercado).vetorUsinaNaoSimulada.isInstanciado(idUsinaNaoSimulada))
 									vetorSubmercado.att(idSubmercado).vetorUsinaNaoSimulada.att(idUsinaNaoSimulada).clear(attVetorUsinaNaoSimulada_media);
@@ -7223,7 +7392,6 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 				//
 				a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
 
-				a_entradaSaidaDados.setAppendArquivo(false);
 				a_entradaSaidaDados.imprimirArquivoCSV_AttComum("SUBMERCADO_AttComumOperacional.csv", IdSubmercado_Nenhum, *this, std::vector<AttComumSubmercado> {AttComumSubmercado_idSubmercado, AttComumSubmercado_nome });
 
 				a_entradaSaidaDados.setAppendArquivo(false);
@@ -7246,8 +7414,8 @@ void Dados::validacao_operacional_Submercado(EntradaSaidaDados a_entradaSaidaDad
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -7288,7 +7456,7 @@ void Dados::validacao_operacional_Intercambio(EntradaSaidaDados a_entradaSaidaDa
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_att_operacionais_intercambio = false;
 
@@ -7488,8 +7656,8 @@ void Dados::validacao_operacional_Intercambio(EntradaSaidaDados a_entradaSaidaDa
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -7525,7 +7693,7 @@ void Dados::validacao_operacional_BaciaHidrografica(EntradaSaidaDados a_entradaS
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		validaBaciaHidrografica();
 
@@ -7549,8 +7717,8 @@ void Dados::validacao_operacional_BaciaHidrografica(EntradaSaidaDados a_entradaS
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -7584,7 +7752,7 @@ void Dados::validacao_operacional_Contrato(EntradaSaidaDados a_entradaSaidaDados
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
@@ -7640,7 +7808,7 @@ void Dados::validacao_operacional_DemandaEspecial(EntradaSaidaDados a_entradaSai
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 		const IdDemandaEspecial maiorIdDemandaEspecial = getMaiorId(IdDemandaEspecial());
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
@@ -7687,7 +7855,7 @@ void Dados::validacao_operacional_Eolica(EntradaSaidaDados a_entradaSaidaDados, 
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 		const IdUsinaEolica maiorIdUsinaEolica = getMaiorId(IdUsinaEolica());
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
@@ -7736,7 +7904,7 @@ void Dados::validacao_operacional_RestricaoEletrica(EntradaSaidaDados a_entradaS
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_att_operacionais_restricao_eletrica = false;
 		bool calcular_att_operacionais_elemento_sistema = false;
@@ -8006,8 +8174,8 @@ void Dados::validacao_operacional_RestricaoEletrica(EntradaSaidaDados a_entradaS
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -8053,7 +8221,7 @@ void Dados::validacao_operacional_AgrupamentoIntercambio(EntradaSaidaDados a_ent
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_att_operacionais_agrupamento_intercambio = false;
 
@@ -8174,8 +8342,8 @@ void Dados::validacao_operacional_AgrupamentoIntercambio(EntradaSaidaDados a_ent
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -8209,295 +8377,11 @@ void Dados::validacao_operacional_AgrupamentoIntercambio(EntradaSaidaDados a_ent
 } // void Dados::validacao_operacional_AgrupamentoIntercambio(EntradaSaidaDados a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_atributos_sem_recarregar){
 
 
-int Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(ProcessoEstocastico& a_processo_estocastico, const IdProcessoEstocastico a_tipo_processo_estocastico) {
-
-	try {
-
-		const SmartEnupla<IdEstagio, Periodo> horizonte_otimizacao = getVetor(AttVetorDados_horizonte_otimizacao, IdEstagio(), Periodo());
-
-		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
-		const IdEstagio estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
-
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
-
-		const Periodo periodo_inicial_otimizacao = horizonte_otimizacao.getElemento(estagio_inicial);
-		const Periodo periodo_final_otimizacao = horizonte_otimizacao.getElemento(estagio_final);
-
-		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
-
-		if (a_processo_estocastico.getAtributo(AttComumProcessoEstocastico_idProcessoEstocastico, IdProcessoEstocastico()) != a_tipo_processo_estocastico)
-			return 1;
-
-		const SmartEnupla<IdCenario, SmartEnupla<Periodo, IdRealizacao>> mapeamento_espaco_amostral = a_processo_estocastico.getMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, IdCenario(), Periodo(), IdRealizacao());
-
-		if (mapeamento_espaco_amostral.size() == 0)
-			return 2;
-
-		if (mapeamento_espaco_amostral.getIteradorInicial() != IdCenario_1)
-			return 3;
-
-		if (mapeamento_espaco_amostral.at(IdCenario_1).size() == 0)
-			return 4;
-
-		Periodo periodo_inicial_espaco_amostral = mapeamento_espaco_amostral.at(IdCenario_1).getIteradorInicial();
-		Periodo periodo_final_espaco_amostral = mapeamento_espaco_amostral.at(IdCenario_1).getIteradorFinal();
-
-		SmartEnupla<Periodo, IdRealizacao> maior_realizacao_espaco_amostral(mapeamento_espaco_amostral.at(IdCenario_1), IdRealizacao_Nenhum);
-
-		for (IdCenario idCenario = IdCenario_2; idCenario <= mapeamento_espaco_amostral.getIteradorFinal(); idCenario++) {
-
-			if (mapeamento_espaco_amostral.at(idCenario).size() == 0)
-				return 5;
-
-			if (mapeamento_espaco_amostral.at(idCenario).getIteradorInicial() != periodo_inicial_espaco_amostral)
-				return 6;
-
-			if (mapeamento_espaco_amostral.at(idCenario).getIteradorFinal() != periodo_final_espaco_amostral)
-				return 7;
-
-			for (Periodo periodo = periodo_inicial_espaco_amostral; periodo <= periodo_final_espaco_amostral; mapeamento_espaco_amostral.at(IdCenario_1).incrementarIterador(periodo)) {
-				if (mapeamento_espaco_amostral.at(idCenario).at(periodo) > maior_realizacao_espaco_amostral.at(periodo))
-					maior_realizacao_espaco_amostral.at(periodo) = mapeamento_espaco_amostral.at(idCenario).at(periodo);
-			}
-
-		} // 
-
-		if (periodo_inicial_espaco_amostral > periodo_inicial_otimizacao)
-			return 8;
-
-		SmartEnupla<IdEstagio, std::vector<Periodo>> periodos_em_estagio(estagio_inicial, std::vector<std::vector<Periodo>>(int(estagio_final - estagio_inicial) + 1, std::vector<Periodo>()));
-		for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-			const Periodo periodo_decomposicao = getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio, Periodo());
-			periodos_em_estagio.at(idEstagio) = mapeamento_espaco_amostral.at(IdCenario_1).getIteradores(periodo_decomposicao);
-
-			if (periodos_em_estagio.at(idEstagio).size() > 0) {
-
-				if (Periodo(TipoPeriodo_minuto, periodo_decomposicao) != Periodo(TipoPeriodo_minuto, periodos_em_estagio.at(idEstagio).at(0)))
-					return 81;
-
-				if (Periodo(TipoPeriodo_minuto, periodo_decomposicao + 1) != Periodo(TipoPeriodo_minuto, periodos_em_estagio.at(idEstagio).at(periodos_em_estagio.at(idEstagio).size() - 1) + 1))
-					return 82;
-
-				for (IdCenario idCenario = IdCenario_1; idCenario <= mapeamento_espaco_amostral.getIteradorFinal(); idCenario++) {
-					const IdRealizacao idRealizacao = mapeamento_espaco_amostral.at(idCenario).at(periodos_em_estagio.at(idEstagio).at(0));
-					for (int i = 1; i < int(periodos_em_estagio.at(idEstagio).size()); i++) {
-						if (idRealizacao != mapeamento_espaco_amostral.at(idCenario).at(periodos_em_estagio.at(idEstagio).at(i)))
-							return 83;
-					}
-				}
-			}
-
-		}
-
-
-		const SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> probabilidade_realizacao = a_processo_estocastico.getMatriz(AttMatrizProcessoEstocastico_probabilidade_realizacao, Periodo(), IdRealizacao(), double());
-
-		Periodo periodo_prob_realizacao = probabilidade_realizacao.getIteradorInicial();
-
-		Periodo periodo_espaco_amostral = periodo_inicial_espaco_amostral;
-		for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-			const Periodo periodo_otimizacao = horizonte_otimizacao.getElemento(idEstagio);
-
-			const double sobreposicao = periodo_espaco_amostral.sobreposicao(periodo_otimizacao);
-
-			if ((0.0 < sobreposicao) && (sobreposicao < 1.0))
-				return 91;
-
-			else if (sobreposicao == 1.0) {
-
-				if (periodo_prob_realizacao.sobreposicao(periodo_espaco_amostral) > 0) {
-
-					if (periodo_prob_realizacao != periodo_espaco_amostral)
-						return 92;
-					if (periodo_prob_realizacao < probabilidade_realizacao.getIteradorFinal())
-						probabilidade_realizacao.incrementarIterador(periodo_prob_realizacao);
-				}
-
-				if (periodo_espaco_amostral < periodo_final_espaco_amostral)
-					mapeamento_espaco_amostral.at(IdCenario_1).incrementarIterador(periodo_espaco_amostral);
-
-			}
-
-		} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-		bool isHorizontePEmenor = false;
-
-		if (periodo_final_espaco_amostral < periodo_final_otimizacao)
-			isHorizontePEmenor = true;
-
-		Periodo periodo_final_tendencia_minuto_ref = Periodo(TipoPeriodo_minuto, periodo_inicial_espaco_amostral) - 1;
-
-		for (IdVariavelAleatoria idVariavelAleatoria = IdVariavelAleatoria_1; idVariavelAleatoria <= a_processo_estocastico.vetorVariavelAleatoria.getMaiorId(); idVariavelAleatoria++) {
-
-			const SmartEnupla<Periodo, SmartEnupla<int, double>> coeficiente_linear_auto_correlacao = a_processo_estocastico.getMatriz(idVariavelAleatoria, AttMatrizVariavelAleatoria_coeficiente_linear_auto_correlacao, Periodo(), int(), double());
-
-			if (true) {
-
-				const SmartEnupla<Periodo, TipoRelaxacaoVariavelAleatoria> tipo_relaxacao = a_processo_estocastico.getVetor(idVariavelAleatoria, AttVetorVariavelAleatoria_tipo_relaxacao, Periodo(), TipoRelaxacaoVariavelAleatoria());
-
-				const SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> residuo_espaco_amostral = a_processo_estocastico.getMatriz(idVariavelAleatoria, AttMatrizVariavelAleatoria_residuo_espaco_amostral, Periodo(), IdRealizacao(), double());
-
-				if (coeficiente_linear_auto_correlacao.size() == 0)
-					return 101;
-
-				if (tipo_relaxacao.size() == 0)
-					return 102;
-
-				if (residuo_espaco_amostral.size() == 0)
-					return 103;
-
-				Periodo periodo_coef_linear = coeficiente_linear_auto_correlacao.getIteradorInicial();
-				Periodo periodo_tipo_rel = tipo_relaxacao.getIteradorInicial();
-				Periodo periodo_residuo = residuo_espaco_amostral.getIteradorInicial();
-				for (Periodo periodo_espaco_amostral = periodo_inicial_espaco_amostral; periodo_espaco_amostral <= periodo_final_espaco_amostral; mapeamento_espaco_amostral.at(IdCenario_1).incrementarIterador(periodo_espaco_amostral)) {
-
-					if (periodo_coef_linear != periodo_espaco_amostral)
-						return 111;
-
-					if (periodo_tipo_rel != periodo_espaco_amostral)
-						return 112;
-
-					if (periodo_residuo != periodo_espaco_amostral)
-						return 113;
-
-					if (coeficiente_linear_auto_correlacao.at(periodo_coef_linear).size() == 0)
-						return 121;
-
-					if (coeficiente_linear_auto_correlacao.at(periodo_coef_linear).size() > 1) {
-						if (coeficiente_linear_auto_correlacao.at(periodo_coef_linear).at(coeficiente_linear_auto_correlacao.at(periodo_coef_linear).getIteradorFinal()) == 0.0)
-							return 122;
-					}
-
-					if (residuo_espaco_amostral.at(periodo_residuo).size() == 0)
-						return 123;
-
-					if (residuo_espaco_amostral.at(periodo_residuo).getIteradorInicial() != IdRealizacao_1)
-						return 124;
-
-					if (residuo_espaco_amostral.at(periodo_residuo).getIteradorFinal() > maior_realizacao_espaco_amostral.at(periodo_residuo))
-						return 1240;
-
-					if (residuo_espaco_amostral.at(periodo_residuo).size() == 1) {
-						if ((probabilidade_realizacao.getIteradorInicial() <= periodo_residuo) && (periodo_residuo <= probabilidade_realizacao.getIteradorFinal())) {
-							if (probabilidade_realizacao.at(periodo_residuo).size() > 1)
-								return 125;
-							else if (probabilidade_realizacao.at(periodo_residuo).size() == 1) {
-								if (probabilidade_realizacao.at(periodo_residuo).getIteradorInicial() != IdRealizacao_1)
-									return 126;
-							}
-						}
-					}
-
-					else if (residuo_espaco_amostral.at(periodo_residuo).size() > 1) {
-						if (probabilidade_realizacao.at(periodo_residuo).getIteradorInicial() != IdRealizacao_1)
-							return 127;
-						if (residuo_espaco_amostral.at(periodo_residuo).size() != probabilidade_realizacao.at(periodo_residuo).size())
-							return 128;
-
-						a_processo_estocastico.validar_probabilidade_realizacao(periodo_residuo);
-					}
-
-					if (periodo_prob_realizacao.sobreposicao(periodo_residuo) > 0.0) {
-						probabilidade_realizacao.incrementarIterador(periodo_prob_realizacao); //refazer
-					}
-
-					coeficiente_linear_auto_correlacao.incrementarIterador(periodo_coef_linear);
-					tipo_relaxacao.incrementarIterador(periodo_tipo_rel);
-					residuo_espaco_amostral.incrementarIterador(periodo_residuo);
-
-				}
-
-				if (coeficiente_linear_auto_correlacao.getIteradorFinal() != periodo_final_espaco_amostral)
-					return 131;
-
-				if (tipo_relaxacao.getIteradorFinal() != periodo_final_espaco_amostral)
-					return 132;
-
-				if (residuo_espaco_amostral.getIteradorFinal() != periodo_final_espaco_amostral)
-					return 133;
-
-			} // if (true) {
-
-			for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= a_processo_estocastico.getMaiorId(idVariavelAleatoria, IdVariavelAleatoriaInterna()); idVariavelAleatoriaInterna++) {
-
-				if ((a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) || (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_bacia)) {
-					if (!vetorHidreletrica.isInstanciado(a_processo_estocastico.getIdFisicoFromIdVariavelAleatoriaIdVariavelAleatoriaInterna(idVariavelAleatoria, idVariavelAleatoriaInterna, IdHidreletrica())))
-						return 14;
-				}
-
-				SmartEnupla<Periodo, double> coeficiente_participacao = a_processo_estocastico.getVetor(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_coeficiente_participacao, Periodo(), double());
-
-				if (coeficiente_participacao.size() == 0)
-					return 15;
-
-				Periodo periodo_coef_part = coeficiente_participacao.getIteradorInicial();
-				for (Periodo periodo_espaco_amostral = periodo_inicial_espaco_amostral; periodo_espaco_amostral <= periodo_final_espaco_amostral; mapeamento_espaco_amostral.at(IdCenario_1).incrementarIterador(periodo_espaco_amostral)) {
-
-					if (periodo_coef_part != periodo_espaco_amostral)
-						return 151;
-
-				
-					coeficiente_participacao.incrementarIterador(periodo_coef_part);
-
-				}
-
-				if (coeficiente_participacao.getIteradorFinal() != periodo_final_espaco_amostral)
-					return 152;
-
-				SmartEnupla<Periodo, double> tendencia_temporal = a_processo_estocastico.getVetor(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_tendencia_temporal, Periodo(), double());
-
-				if (estagio_inicial == IdEstagio_1) {
-
-					if (tendencia_temporal.size() == 0)
-						return 16;
-
-					if (periodo_final_tendencia_minuto_ref != Periodo(TipoPeriodo_minuto, tendencia_temporal.getIteradorFinal() + 1) - 1)
-						return 17;
-
-					int lag = 0;
-					for (lag = coeficiente_linear_auto_correlacao.at(periodo_inicial_espaco_amostral).size(); lag > 1; lag--) {
-						if (coeficiente_linear_auto_correlacao.at(periodo_inicial_espaco_amostral).at(lag) > 0.0)
-							break;
-					}
-
-					const Periodo periodo_minimo_tendencia = periodo_inicial_espaco_amostral -lag;
-
-					if (tendencia_temporal.getIteradorInicial() > periodo_minimo_tendencia)
-						return 18;
-
-				}
-			
-			} // for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= maiorIdVariavelAleatoriaInterna; idVariavelAleatoriaInterna++) {
-
-			for (Periodo periodo_espaco_amostral = periodo_inicial_espaco_amostral; periodo_espaco_amostral <= periodo_final_espaco_amostral; mapeamento_espaco_amostral.at(IdCenario_1).incrementarIterador(periodo_espaco_amostral)) {
-				double coef_part_acumulado = 0.0;
-				for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= a_processo_estocastico.getMaiorId(idVariavelAleatoria, IdVariavelAleatoriaInterna()); idVariavelAleatoriaInterna++) {
-					coef_part_acumulado += a_processo_estocastico.getElementoVetor(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_coeficiente_participacao, periodo_espaco_amostral, double());
-				}
-				if (coef_part_acumulado > 1.0)
-					return 19;
-			}
-
-
-		} // for (IdVariavelAleatoria idVariavelAleatoria = IdVariavelAleatoria_1; idVariavelAleatoria <= maiorIdVariavelAleatoria; idVariavelAleatoria++) {
-
-		if (isHorizontePEmenor)
-			return -1;
-
-		return 0;
-
-	} // try{
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(a_processo_estocastico," + getFullString(a_tipo_processo_estocastico) + "): \n" + std::string(erro.what())); }
-
-} // bool Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(){
-
-
 void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDados& a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const std::string a_diretorio_exportacao_pos_estudo, const bool a_imprimir_atributos_sem_recarregar) {
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_att_operacionais_historico_hidrologico = false;
 		bool calcular_att_operacionais_tendencia_hidrologica = false;
@@ -8509,9 +8393,10 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 		const TipoModeloGeracaoSinteticaCenario tipo_modelo_geracao_sintetica = getAtributo(AttComumDados_tipo_modelo_geracao_cenario_hidrologico, TipoModeloGeracaoSinteticaCenario());
 		const TipoValor     tipo_coeficiente_auto_correlacao = getAtributo(AttComumDados_tipo_coeficiente_auto_correlacao_geracao_cenario_hidrologico, TipoValor());
 		const TipoCorrelacaoVariaveisAleatorias tipo_correlacao_variaveis_aleatorias = getAtributo(AttComumDados_tipo_correlacao_geracao_cenario_hidrologico, TipoCorrelacaoVariaveisAleatorias());
-		const double correlacao_dominante = getAtributo(AttComumDados_correlacao_dominante_geracao_cenario_hidrologico, double());
 
 		const int  ordem_maxima_auto_correlacao_hidrologica = getAtributo(AttComumDados_ordem_maxima_auto_correlacao_geracao_cenario_hidrologico, int());
+
+		const TipoRelaxacaoAfluenciaIncremental tipo_relaxacao_afluencia_incremental = getAtributo(AttComumDados_tipo_relaxacao_afluencia_incremental, TipoRelaxacaoAfluenciaIncremental());
 
 		const TipoTendenciaEstocastica tipo_tendencia_hidrologica = getAtributo(AttComumDados_tipo_tendencia_hidrologica, TipoTendenciaEstocastica());
 
@@ -8522,29 +8407,30 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
 		const IdEstagio estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
 
-		const IdCenario cenario_inicial = arranjoResolucao.getAtributo(idProcesso, AttComumProcesso_menor_cenario, IdCenario());
-		const IdCenario cenario_final   = arranjoResolucao.getAtributo(idProcesso, AttComumProcesso_maior_cenario, IdCenario());
+		const Periodo periodo_inicial = horizonte_otimizacao.getElemento(estagio_inicial);
+		const Periodo periodo_final_otimizacao = horizonte_otimizacao.getElemento(estagio_final);
 
-		int calcular_att_operacionais_processo_estocastico_hidrologico = isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(processoEstocastico_hidrologico, tipo_processo_estocastico_hidrologico);
 
-		if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-			for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
+		const IdCenario cenario_inicial = getAtributo(AttComumDados_menor_cenario_do_processo, IdCenario());
+		const IdCenario cenario_final = getAtributo(AttComumDados_maior_cenario_do_processo, IdCenario());
+
+		int calcular_att_operacionais_processo_estocastico_hidrologico = isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(cenario_inicial, cenario_final, estagio_inicial, estagio_final, processoEstocastico_hidrologico, tipo_processo_estocastico_hidrologico, tipo_espaco_amostral_hidrologico, tipo_correlacao_variaveis_aleatorias, tipo_modelo_geracao_sintetica, false, tipo_coeficiente_auto_correlacao, ordem_maxima_auto_correlacao_hidrologica, tipo_relaxacao_afluencia_incremental);
+
+		if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+			for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++) {
 				int calcular_att_operacionais_processo_estocastico_hidrologico_rank = 0;
 				MPI_Recv(&calcular_att_operacionais_processo_estocastico_hidrologico_rank, 1, MPI_INT, getRank(idProcesso), 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 				if ((calcular_att_operacionais_processo_estocastico_hidrologico == 0) && (calcular_att_operacionais_processo_estocastico_hidrologico_rank > 0))
 					calcular_att_operacionais_processo_estocastico_hidrologico = calcular_att_operacionais_processo_estocastico_hidrologico_rank;
 
-				else if ((calcular_att_operacionais_processo_estocastico_hidrologico == 0) && (calcular_att_operacionais_processo_estocastico_hidrologico_rank < 0))
-					calcular_att_operacionais_processo_estocastico_hidrologico = calcular_att_operacionais_processo_estocastico_hidrologico_rank;
-
-			} // for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
+			} // for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++) {
 		}
 		else
 			MPI_Send(&calcular_att_operacionais_processo_estocastico_hidrologico, 1, MPI_INT, getRank(IdProcesso_mestre), 1, MPI_COMM_WORLD);
 
-		if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-			for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+		if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+			for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 				MPI_Send(&calcular_att_operacionais_processo_estocastico_hidrologico, 1, MPI_INT, getRank(idProcesso), 1, MPI_COMM_WORLD);
 		}
 		else
@@ -8552,12 +8438,10 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 
 		bool imprimir_parametros_hidrologico = false;
-		bool imprimir_r2_historico_natural = false;
 		bool imprimir_espaco_amostral_hidrologico = false;
 
 		if (idProcesso == IdProcesso_mestre) {
 			imprimir_parametros_hidrologico = true;
-			imprimir_r2_historico_natural = true;
 			imprimir_espaco_amostral_hidrologico = getAtributo(AttComumDados_imprimir_espaco_amostral_geracao_cenario_hidrologico, bool());
 		} // if (idProcesso == IdProcesso_mestre) {
 
@@ -8579,13 +8463,13 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			} // if (!valida_historico_AfluenciaEmHidreletrica(AttVetorAfluencia_incremental_historico)) {
 
 			if (tipo_tendencia_hidrologica == TipoTendenciaEstocastica_serie_informada) {
-				if (!valida_tendencia_AfluenciaEmHidreletrica(AttVetorAfluencia_incremental_tendencia)) {
-					if (valida_tendencia_AfluenciaEmHidreletrica(AttVetorAfluencia_natural_tendencia)) {
+				if (!valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_incremental_tendencia)) {
+					if (valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_natural_tendencia)) {
 						calcular_tendencia_afluencia_incremental_com_natural();
 						calcular_att_operacionais_tendencia_hidrologica = true;
 					}
 					else
-						throw std::invalid_argument("Necessario informar atributo operacional " + getFullString(AttVetorAfluencia_incremental_tendencia) + " ou atributo premissa " + getFullString(AttVetorAfluencia_natural_tendencia));
+						throw std::invalid_argument("Necessario informar atributo operacional " + getFullString(AttMatrizAfluencia_incremental_tendencia) + " ou atributo premissa " + getFullString(AttMatrizAfluencia_natural_tendencia));
 				} // if (!valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_incremental_tendencia)) {
 			} // if (tipo_tendencia_hidrologica == TipoTendenciaEstocastica_serie_informada) {
 			else if (tipo_tendencia_hidrologica == TipoTendenciaEstocastica_historico) {
@@ -8594,34 +8478,158 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			}
 
 		} // if (calcular_att_operacionais_processo_estocastico_hidrologico > 0) {
-		else if (calcular_att_operacionais_processo_estocastico_hidrologico < 0) {
 
-			if (idProcesso == IdProcesso_mestre)
-				std::cout << "Novo Processo Estocastico Instanciado e Anexado ao Anterior." << std::endl;
 
-		}
+		if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) > 0) {//Valida estrutura �rvore
 
+			const SmartEnupla<IdCenario, SmartEnupla <Periodo, IdNo>> mapeamento_arvore_cenarios = processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios, IdCenario(), Periodo(), IdNo());
+
+			const IdCenario idCenario_inicial = mapeamento_arvore_cenarios.getIteradorInicial();
+			const IdCenario idCenario_final = mapeamento_arvore_cenarios.getIteradorFinal();
+
+			if (idCenario_inicial != IdCenario_1)
+				throw std::invalid_argument("IdCenario inicial deve ser IdCenario_1 para " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios));
+
+			const int numero_periodos_mapeamento_arvore_cenarios = int(mapeamento_arvore_cenarios.at(idCenario_inicial).size());
+
+			for (IdCenario idCenario = idCenario_inicial; idCenario <= idCenario_final; idCenario++) {
+
+				if (numero_periodos_mapeamento_arvore_cenarios != int(mapeamento_arvore_cenarios.at(idCenario).size()))
+					throw std::invalid_argument("O numero de periodos deve ser igual para todos os cenarios em " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios));
+
+			}//for (IdCenario idCenario = idCenario_inicial; idCenario <= idCenario_final; idCenario++) {
+
+			////////////
+
+			if (numero_periodos_mapeamento_arvore_cenarios != processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_no_realizacao))
+				throw std::invalid_argument("O numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_no_realizacao) + " deve ser igual ao numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios));
+
+			if (numero_periodos_mapeamento_arvore_cenarios != processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_no_antecessor))
+				throw std::invalid_argument("O numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_no_antecessor) + " deve ser igual ao numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios));
+
+			if (numero_periodos_mapeamento_arvore_cenarios != processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_no_probabilidade))
+				throw std::invalid_argument("O numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_no_probabilidade) + " deve ser igual ao numero de periodos em " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios));
+
+			////////////
+
+			const SmartEnupla <Periodo, IdNo> horizonte_processo_estocastico = mapeamento_arvore_cenarios.at(idCenario_inicial);
+
+			const Periodo periodo_inicial = horizonte_processo_estocastico.getIteradorInicial();
+			const Periodo periodo_final = horizonte_processo_estocastico.getIteradorFinal();
+
+			const SmartEnupla <Periodo, SmartEnupla<IdNo, IdNo>> no_antecessor = processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_no_antecessor, Periodo(), IdNo(), IdNo());
+			const SmartEnupla <Periodo, SmartEnupla<IdNo, double>> no_probabilidade = processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_no_probabilidade, Periodo(), IdNo(), double());
+			const SmartEnupla <Periodo, SmartEnupla<IdNo, IdRealizacao>> no_realizacao = processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_no_realizacao, Periodo(), IdNo(), IdRealizacao());
+
+			for (Periodo periodo = periodo_inicial; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+				if (int(no_realizacao.at(periodo).size()) != int(no_antecessor.at(periodo).size()) || int(no_realizacao.at(periodo).size()) != int(no_probabilidade.at(periodo).size()) || int(no_antecessor.at(periodo).size()) != int(no_probabilidade.at(periodo).size()))
+					throw std::invalid_argument("Dimensao deve ser igual no periodo" + getFullString(periodo) + " para " + getFullString(AttMatrizProcessoEstocastico_no_realizacao) + ", " + getFullString(AttMatrizProcessoEstocastico_no_antecessor) + " e " + getFullString(AttMatrizProcessoEstocastico_no_probabilidade));
+
+				if (no_realizacao.at(periodo).getIteradorInicial() != IdNo_1)
+					throw std::invalid_argument("Iterador inicial deve ser IdNo_1 em " + getFullString(AttMatrizProcessoEstocastico_no_realizacao) + " no periodo " + getFullString(periodo));
+
+				if (no_antecessor.at(periodo).getIteradorInicial() != IdNo_1)
+					throw std::invalid_argument("Iterador inicial deve ser IdNo_1 em " + getFullString(AttMatrizProcessoEstocastico_no_antecessor) + " no periodo " + getFullString(periodo));
+
+				if (no_probabilidade.at(periodo).getIteradorInicial() != IdNo_1)
+					throw std::invalid_argument("Iterador inicial deve ser IdNo_1 em " + getFullString(AttMatrizProcessoEstocastico_no_probabilidade) + " no periodo " + getFullString(periodo));
+
+				const IdNo maiorIdNo = mapeamento_arvore_cenarios.at(idCenario_final).getElemento(periodo);
+
+				if (no_realizacao.at(periodo).getIteradorFinal() != maiorIdNo)
+					throw std::invalid_argument("Iterador final deve ser " + getFullString(maiorIdNo) + " em " + getFullString(AttMatrizProcessoEstocastico_no_realizacao) + "no periodo " + getFullString(periodo));
+
+				if (no_antecessor.at(periodo).getIteradorFinal() != maiorIdNo)
+					throw std::invalid_argument("Iterador final deve ser " + getFullString(maiorIdNo) + " em " + getFullString(AttMatrizProcessoEstocastico_no_antecessor) + "no periodo " + getFullString(periodo));
+
+				if (no_probabilidade.at(periodo).getIteradorFinal() != maiorIdNo)
+					throw std::invalid_argument("Iterador final deve ser " + getFullString(maiorIdNo) + " em " + getFullString(AttMatrizProcessoEstocastico_no_probabilidade) + "no periodo " + getFullString(periodo));
+
+			}//for (Periodo periodo = periodo_inicial; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+			////////////
+
+			Periodo periodo_segundo = periodo_inicial;
+			horizonte_processo_estocastico.incrementarIterador(periodo_segundo);
+
+			for (IdCenario idCenario = idCenario_inicial; idCenario <= idCenario_final; idCenario++) {
+
+				for (Periodo periodo = periodo_segundo; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+					const IdNo idNo = mapeamento_arvore_cenarios.at(idCenario).getElemento(periodo);
+
+					Periodo periodo_anterior = periodo;
+					horizonte_processo_estocastico.decrementarIterador(periodo_anterior);
+
+					const IdNo idNo_antecessor = mapeamento_arvore_cenarios.at(idCenario).getElemento(periodo_anterior);
+
+					if (no_antecessor.at(periodo).getElemento(idNo) != idNo_antecessor)
+						throw std::invalid_argument("No_antecessor nao compativel entre " + getFullString(AttMatrizProcessoEstocastico_no_antecessor) + " e " + getFullString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) + " para o " + getFullString(idNo) + " " + getFullString(periodo));
+
+				}//for (Periodo periodo = periodo_segundo; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+			}//for (IdCenario idCenario = idCenario_inicial; idCenario <= idCenario_final; idCenario++) {
+
+			////////////
+
+			for (Periodo periodo = periodo_inicial; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+				const IdNo maiorIdNo = no_antecessor.at(periodo).getIteradorFinal();
+
+				double probabilidade_abertura = 0;
+
+				IdNo idNo_antecessor_referencia = no_antecessor.at(periodo).getElemento(IdNo_1);
+
+				for (IdNo idNo = IdNo_1; idNo <= maiorIdNo; idNo++) {
+
+					if (no_antecessor.at(periodo).getElemento(idNo) != idNo_antecessor_referencia) {
+
+						if (probabilidade_abertura > 1.00001 || probabilidade_abertura < 0.99995)
+							throw std::invalid_argument("A probabilidade das aberturas da arvore de cenarios deve ser 1 no periodo " + getFullString(periodo));
+
+						probabilidade_abertura = 0;
+						idNo_antecessor_referencia = no_antecessor.at(periodo).getElemento(idNo);
+
+					}//if (no_antecessor.at(periodo).getElemento(idNo) != idNo_antecessor_referencia) {
+
+					probabilidade_abertura += no_probabilidade.at(periodo).getElemento(idNo);
+
+				}//for (IdNo idNo = IdNo_1; idNo <= maiorIdNo; idNo++) {
+
+				if (probabilidade_abertura > 1.00001 || probabilidade_abertura < 0.99995)
+					throw std::invalid_argument("A probabilidade das aberturas da arvore de cenarios deve ser 1 no periodo" + getFullString(periodo));
+
+			}//for (Periodo periodo = periodo_inicial; periodo <= periodo_final; horizonte_processo_estocastico.incrementarIterador(periodo)) {
+
+			////////////
+
+			if (processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_variavelAleatoria_realizacao, IdRealizacao(), IdVariavelAleatoria(), double()).getIteradorFinal() != \
+				no_realizacao.at(horizonte_processo_estocastico.getIteradorFinal()).getElemento(no_realizacao.at(horizonte_processo_estocastico.getIteradorFinal()).getIteradorFinal()))
+				throw std::invalid_argument("O maior Iterador em " + getFullString(AttMatrizProcessoEstocastico_variavelAleatoria_realizacao) + " deve corresponder com o maior IdRealizacao de " + getFullString(AttMatrizProcessoEstocastico_no_realizacao));
+
+		}//if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) > 0) {
 
 		//
 		// Imprime Atributos Premissas ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		//
 
-		if ((calcular_att_operacionais_processo_estocastico_hidrologico != 0) || (a_imprimir_atributos_sem_recarregar)) {
+		if ((calcular_att_operacionais_processo_estocastico_hidrologico > 0) || (a_imprimir_atributos_sem_recarregar)) {
 
 			if (idProcesso == IdProcesso_mestre) {
 
 				a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_premissa);
 
 				bool impresso_historico = false;
-				if (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) > 0) {
+				if (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) > 0) {
 					a_entradaSaidaDados.setAppendArquivo(impresso_historico);
 					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_vazao_afluente, *this, AttVetorAfluencia_natural_historico);
 					impresso_historico = true;
 				}
 				bool impresso_tendencia = false;
-				if (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia) > 0) {
+				if (getSize1Matriz(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) > 0) {
 					a_entradaSaidaDados.setAppendArquivo(impresso_tendencia);
-					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_vazao_afluente, *this, AttVetorAfluencia_natural_tendencia);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("HIDRELETRICA_AFLUENCIA_AttMatrizPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_vazao_afluente, *this, AttMatrizAfluencia_natural_tendencia);
 					impresso_tendencia = true;
 				}
 
@@ -8633,16 +8641,12 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 		// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- Imprime Atributos Premissas
 		//
 
-		if (calcular_att_operacionais_processo_estocastico_hidrologico != 0) {
+		if (calcular_att_operacionais_processo_estocastico_hidrologico > 0) {
 
-			a_entradaSaidaDados.setAppendArquivo(false);
-
-			a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_premissa);
-
-			if (calcular_att_operacionais_processo_estocastico_hidrologico > 0)
-				processoEstocastico_hidrologico = ProcessoEstocastico();
 
 			instanciarProcessoEstocasticoHidrologicoComHistoricoAfluenciaIncremental(tipo_processo_estocastico_hidrologico, processoEstocastico_hidrologico);
+
+			a_entradaSaidaDados.setAppendArquivo(false);
 
 			a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_premissa + "//ProcessoEstocasticoHidrologico");
 
@@ -8652,7 +8656,6 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 			bool realizar_reducao_espaco_amostral = false;
 
-			
 			for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
 				if (idEstagio != estagio_inicial && getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int()) < getAtributo(AttComumDados_numero_aberturas, int())) {
 					realizar_reducao_espaco_amostral = true;
@@ -8664,7 +8667,7 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			// Parametrizacao do Modelo do Processo Estocastico Hidrologico
 			//
 
-			processoEstocastico_hidrologico.parametrizarModelo(a_entradaSaidaDados, imprimir_parametros_hidrologico, tipo_modelo_geracao_sintetica, tipo_coeficiente_auto_correlacao, ordem_maxima_auto_correlacao_hidrologica, tipo_correlacao_variaveis_aleatorias, correlacao_dominante);
+			processoEstocastico_hidrologico.parametrizarModelo(a_entradaSaidaDados, imprimir_parametros_hidrologico, tipo_modelo_geracao_sintetica, tipo_coeficiente_auto_correlacao, ordem_maxima_auto_correlacao_hidrologica, tipo_correlacao_variaveis_aleatorias);
 
 
 			if (idProcesso == IdProcesso_mestre) {
@@ -8682,15 +8685,16 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			int semente_espaco_amostral_hidrologico = getAtributo(AttComumDados_semente_espaco_amostral_geracao_cenario_hidrologico, int());
 
 			if (realizar_reducao_espaco_amostral)
-				processoEstocastico_hidrologico.gerarEspacoAmostralPorSorteio(a_entradaSaidaDados, imprimir_espaco_amostral_hidrologico, TipoRelaxacaoVariavelAleatoria_truncamento_penalizacao, getHorizonteEspacoAmostralHidrologico(estagio_inicial, estagio_final, IdRealizacao(getAtributo(AttComumDados_numero_aberturas, int())), true), getAtributo(AttComumDados_tipo_sorteio_espaco_amostral_geracao_cenario_hidrologico, TipoSorteio()), semente_espaco_amostral_hidrologico);
+				processoEstocastico_hidrologico.gerarEspacoAmostralPorSorteio(a_entradaSaidaDados, imprimir_espaco_amostral_hidrologico, getHorizonteEspacoAmostralHidrologico(estagio_inicial, estagio_final, IdRealizacao(getAtributo(AttComumDados_numero_aberturas, int())), true), getAtributo(AttComumDados_tipo_sorteio_espaco_amostral_geracao_cenario_hidrologico, TipoSorteio()), semente_espaco_amostral_hidrologico);
 			else
-				processoEstocastico_hidrologico.gerarEspacoAmostralPorSorteio(a_entradaSaidaDados, imprimir_espaco_amostral_hidrologico, TipoRelaxacaoVariavelAleatoria_truncamento_penalizacao, getHorizonteEspacoAmostralHidrologico(estagio_inicial, estagio_final), getAtributo(AttComumDados_tipo_sorteio_espaco_amostral_geracao_cenario_hidrologico, TipoSorteio()), semente_espaco_amostral_hidrologico);
+				processoEstocastico_hidrologico.gerarEspacoAmostralPorSorteio(a_entradaSaidaDados, imprimir_espaco_amostral_hidrologico, getHorizonteEspacoAmostralHidrologico(estagio_inicial, estagio_final), getAtributo(AttComumDados_tipo_sorteio_espaco_amostral_geracao_cenario_hidrologico, TipoSorteio()), semente_espaco_amostral_hidrologico);
 
+			processoEstocastico_hidrologico.mapearCenariosTendencia(getAtributo(AttComumDados_numero_cenarios, int()), getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int()));
 
 
 			//
 			// Reducao Espaco Amostral
-			//
+//
 			if (realizar_reducao_espaco_amostral) {
 
 				const TipoEstudo tipo_estudo = getAtributo(AttComumDados_tipo_estudo, TipoEstudo());
@@ -8712,15 +8716,15 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			//
 
 			int semente_geracao_cenario_hidrologico = getAtributo(AttComumDados_semente_geracao_cenario_hidrologico, int());
-			processoEstocastico_hidrologico.gerarCenariosPorSorteio(a_entradaSaidaDados, imprimir_cenarios_hidrologicos, true, true, getAtributo(AttComumDados_numero_cenarios, int()), cenario_inicial, cenario_final, TipoSorteio_uniforme, semente_geracao_cenario_hidrologico);
-
+			processoEstocastico_hidrologico.gerarCenariosPorSorteio(a_entradaSaidaDados, imprimir_cenarios_hidrologicos, true, true, getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int()), getAtributo(AttComumDados_numero_cenarios, int()), cenario_inicial, cenario_final, TipoSorteio_uniforme, semente_geracao_cenario_hidrologico);
 
 
 		} // if (calcular_att_operacionais_processo_estocastico_hidrologico) {
 
 
 
-		if ((calcular_att_operacionais_processo_estocastico_hidrologico != 0) || (a_imprimir_atributos_sem_recarregar)) {
+
+		if ((calcular_att_operacionais_processo_estocastico_hidrologico > 0) || (a_imprimir_atributos_sem_recarregar)) {
 
 
 			//
@@ -8738,9 +8742,9 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 				if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_probabilidade_realizacao) > 0)
 					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_probabilidade_realizacao) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_probabilidade_realizacao);
 
-				//a_entradaSaidaDados.imprimirArquivoCSV_AttComum("VARIAVEL_ALEATORIA_AttComumOperacional.csv", IdVariavelAleatoria_Nenhum, processoEstocastico_hidrologico);
+				a_entradaSaidaDados.imprimirArquivoCSV_AttComum("VARIAVEL_ALEATORIA_AttComumOperacional.csv", IdVariavelAleatoria_Nenhum, processoEstocastico_hidrologico);
 
-				a_entradaSaidaDados.imprimirArquivoCSV_AttComum("VARIAVEL_ALEATORIA_INTERNA_AttComumOperacional.csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, std::vector<AttComumVariavelAleatoriaInterna>{AttComumVariavelAleatoriaInterna_idVariavelAleatoriaInterna, AttComumVariavelAleatoriaInterna_nome, AttComumVariavelAleatoriaInterna_grau_liberdade});
+				a_entradaSaidaDados.imprimirArquivoCSV_AttComum("VARIAVEL_ALEATORIA_INTERNA_AttComumOperacional.csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, std::vector<AttComumVariavelAleatoriaInterna>{AttComumVariavelAleatoriaInterna_idVariavelAleatoriaInterna, AttComumVariavelAleatoriaInterna_nome});
 
 				if (processoEstocastico_hidrologico.getSize1Matriz(IdVariavelAleatoria_1, AttMatrizVariavelAleatoria_residuo_espaco_amostral) > 0)
 					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("VARIAVEL_ALEATORIA_" + getString(AttMatrizVariavelAleatoria_residuo_espaco_amostral) + ".csv", IdVariavelAleatoria_Nenhum, processoEstocastico_hidrologico, AttMatrizVariavelAleatoria_residuo_espaco_amostral);
@@ -8756,12 +8760,27 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("VARIAVEL_ALEATORIA_" + getString(AttMatrizVariavelAleatoria_coeficiente_linear_auto_correlacao) + ".csv", IdVariavelAleatoria_Nenhum, processoEstocastico_hidrologico, horizonte_coeficiente_linear_auto_correlacao.getIteradorInicial(), horizonte_coeficiente_linear_auto_correlacao.getIteradorFinal(), 1, maior_ordem_horizonte, AttMatrizVariavelAleatoria_coeficiente_linear_auto_correlacao);
 				}
 
-				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("VARIAVEL_ALEATORIA_" + getString(AttVetorVariavelAleatoria_tipo_relaxacao) + ".csv", IdVariavelAleatoria_Nenhum, processoEstocastico_hidrologico, AttVetorVariavelAleatoria_tipo_relaxacao);
-
+				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_grau_liberdade) + ".csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, AttVetorVariavelAleatoriaInterna_grau_liberdade);
 				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_coeficiente_participacao) + ".csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, AttVetorVariavelAleatoriaInterna_coeficiente_participacao);
 
-				if (processoEstocastico_hidrologico.getSizeVetor(IdVariavelAleatoria_1, IdVariavelAleatoriaInterna_1, AttVetorVariavelAleatoriaInterna_tendencia_temporal) > 0)
-					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttVetorVariavelAleatoriaInterna_tendencia_temporal) + ".csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, AttVetorVariavelAleatoriaInterna_tendencia_temporal);
+				//Imprime estrutura �rvore de cenarios
+				if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) > 0) {
+
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_realizacao) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_no_realizacao);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_antecessor) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_no_antecessor);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_no_probabilidade) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_no_probabilidade);
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_variavelAleatoria_realizacao) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_variavelAleatoria_realizacao);
+
+				} // if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) > 0) {
+
+				if (processoEstocastico_hidrologico.getSize1Matriz(IdVariavelAleatoria_1, IdVariavelAleatoriaInterna_1, AttMatrizVariavelAleatoriaInterna_tendencia_temporal) > 0) {
+
+					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("PROCESSO_ESTOCASTICO_" + getString(AttVetorProcessoEstocastico_mapeamento_tendencia_temporal) + ".csv", processoEstocastico_hidrologico, AttVetorProcessoEstocastico_mapeamento_tendencia_temporal);
+
+					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("VARIAVEL_ALEATORIA_INTERNA_" + getString(AttMatrizVariavelAleatoriaInterna_tendencia_temporal) + ".csv", IdVariavelAleatoria_Nenhum, IdVariavelAleatoriaInterna_Nenhum, processoEstocastico_hidrologico, AttMatrizVariavelAleatoriaInterna_tendencia_temporal);
+
+				} // if (processoEstocastico_hidrologico.getSize1Matriz(IdVariavelAleatoria_1, IdVariavelAleatoriaInterna_1, AttMatrizVariavelAleatoriaInterna_tendencia_temporal) > 0) {
 
 				if (processoEstocastico_hidrologico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) > 0)
 					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ESTOCASTICO_" + getString(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) + ".csv", processoEstocastico_hidrologico, AttMatrizProcessoEstocastico_mapeamento_espaco_amostral);
@@ -8775,7 +8794,7 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 		} // if (calcular_att_operacionais_processo_estocastico_hidrologico) {	
 
 
-		if (getAtributo(AttComumDados_imprimir_exportacao_pos_estudo, bool())) {
+		if ((!strCompara(a_diretorio_exportacao_pos_estudo, "nenhum") && (a_imprimir_atributos_sem_recarregar)) || (getAtributo(AttComumDados_imprimir_exportacao_pos_estudo, bool()))) {
 
 			const IdVariavelAleatoria maiorIdVariavelAleatoria = processoEstocastico_hidrologico.getMaiorId(IdVariavelAleatoria());
 
@@ -8786,14 +8805,14 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 				if (processoEstocastico_hidrologico.vetorVariavelAleatoria.att(IdVariavelAleatoria_1).vetorVariavelAleatoriaInterna.att(IdVariavelAleatoriaInterna_1).getSizeMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral) == 0) {
 
 					int semente_geracao_cenario_hidrologico = getAtributo(AttComumDados_semente_geracao_cenario_hidrologico, int());
-					processoEstocastico_hidrologico.gerarCenariosPorSorteio(a_entradaSaidaDados, false, true, true, getAtributo(AttComumDados_numero_cenarios, int()), cenario_inicial, cenario_final, TipoSorteio_uniforme, semente_geracao_cenario_hidrologico);
+					processoEstocastico_hidrologico.gerarCenariosPorSorteio(a_entradaSaidaDados, false, true, true, getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int()), getAtributo(AttComumDados_numero_cenarios, int()), cenario_inicial, cenario_final, TipoSorteio_uniforme, semente_geracao_cenario_hidrologico);
 
 				} // if (processoEstocastico_hidrologico.vetorVariavelAleatoria.att(IdVariavelAleatoria_1).vetorVariavelAleatoriaInterna.att(IdVariavelAleatoriaInterna_1).getSizeMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral) == 0) {
 
 			} // if (calcular_att_operacionais_processo_estocastico_hidrologico == 0) {
 
 			//const IdCenario maiorIdCenario = processoEstocastico_hidrologico.vetorVariavelAleatoria.att(IdVariavelAleatoria_1).vetorVariavelAleatoriaInterna.att(IdVariavelAleatoriaInterna_1).getMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral, IdCenario(), Periodo(), double()).getIteradorFinal();
-			const SmartEnupla <Periodo, double> horizonte_afluencia = processoEstocastico_hidrologico.vetorVariavelAleatoria.att(IdVariavelAleatoria_1).vetorVariavelAleatoriaInterna.att(IdVariavelAleatoriaInterna_1).getMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral, IdCenario(), Periodo(), double()).getElemento(cenario_inicial);
+			const SmartEnupla <Periodo, double> horizonte_afluencia_tendencia = processoEstocastico_hidrologico.vetorVariavelAleatoria.att(IdVariavelAleatoria_1).vetorVariavelAleatoriaInterna.att(IdVariavelAleatoriaInterna_1).getMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral, IdCenario(), Periodo(), double()).getElemento(cenario_inicial);
 
 			const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
@@ -8805,12 +8824,12 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 					IdHidreletrica idHidreletrica_YHF = IdHidreletrica_Nenhum;
 
-					for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+					for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 						if (getFullString(idHidreletrica) == processoEstocastico_hidrologico.vetorVariavelAleatoria.att(idVariavelAleatoria).vetorVariavelAleatoriaInterna.att(idVariavelAleatoriaInterna).getAtributo(AttComumVariavelAleatoriaInterna_nome, std::string())) {
 							idHidreletrica_YHF = idHidreletrica;
 							break;
 						} // if (getFullString(idHidreletrica) == getAtributo(tipo_processo_estocastico_hidrologico, idVariavelAleatoria, idVariavelAleatoriaInterna, AttComumVariavelAleatoriaInterna_nome, std::string())) {
-					} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+					} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 					if (idHidreletrica_YHF == IdHidreletrica_Nenhum)
 						throw std::invalid_argument("Nao ha hidreletrica compativel com " + getFullString(idVariavelAleatoriaInterna) + " em " + getFullString(idVariavelAleatoria));
@@ -8820,14 +8839,11 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 						vetorHidreletrica.att(idHidreletrica_YHF).vetorAfluencia.add(afluencia);
 					}
 
-
-					SmartEnupla<IdCenario, SmartEnupla<Periodo, double>> cenarios_realizacao_espaco_amostral = processoEstocastico_hidrologico.vetorVariavelAleatoria.att(idVariavelAleatoria).vetorVariavelAleatoriaInterna.att(idVariavelAleatoriaInterna).getMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral, IdCenario(), Periodo(), double());
-
 					//Inicializa AttMatrizAfluencia_incremental_tendencia	
-					vetorHidreletrica.att(idHidreletrica_YHF).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_incremental, cenarios_realizacao_espaco_amostral);
+					vetorHidreletrica.att(idHidreletrica_YHF).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_incremental_tendencia, processoEstocastico_hidrologico.vetorVariavelAleatoria.att(idVariavelAleatoria).vetorVariavelAleatoriaInterna.att(idVariavelAleatoriaInterna).getMatriz(AttMatrizVariavelAleatoriaInterna_cenarios_realizacao_espaco_amostral, IdCenario(), Periodo(), double()));
 
 					//Inicializa AttMatrizAfluencia_natural_tendencia			
-					vetorHidreletrica.att(idHidreletrica_YHF).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_natural, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>(cenario_inicial, std::vector <SmartEnupla<Periodo, double>>(int(cenario_final - cenario_inicial) + 1, SmartEnupla<Periodo, double>(horizonte_afluencia, 0.0))));
+					vetorHidreletrica.att(idHidreletrica_YHF).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_natural_tendencia, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>(cenario_inicial, std::vector <SmartEnupla<Periodo, double>>(int(cenario_final - cenario_inicial) + 1, SmartEnupla<Periodo, double>(horizonte_afluencia_tendencia, 0.0))));
 
 				}//	for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= maiorIdVariavelAleatoriaInterna; idVariavelAleatoriaInterna++) {
 
@@ -8837,13 +8853,13 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 			//Atualiza AttMatrizAfluencia_natural_tendencia com os valores de AttMatrizAfluencia_incremental_tendencia
 			////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			for (Periodo periodo = horizonte_afluencia.getIteradorInicial(); periodo <= horizonte_afluencia.getIteradorFinal(); horizonte_afluencia.incrementarIterador(periodo)) {
+			for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
 
-				for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
-					for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+					for (Periodo periodo = horizonte_afluencia_tendencia.getIteradorInicial(); periodo <= horizonte_afluencia_tendencia.getIteradorFinal(); horizonte_afluencia_tendencia.incrementarIterador(periodo)) {
 
-						const double afluencia_incremental = getElementoMatriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental, idCenario, periodo, double());
+						const double afluencia_incremental = vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementoMatriz(AttMatrizAfluencia_incremental_tendencia, idCenario, periodo, double());
 
 						//Atualiza afluencia_natural para a pr�pria usina e para todas as usinas a jusante da idHidreletrica
 
@@ -8851,10 +8867,10 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 						while (idhidreletrica_jusante != IdHidreletrica_Nenhum) {
 
-							double afluencia_natural = getElementoMatriz(idhidreletrica_jusante, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural, idCenario, periodo, double());
+							double afluencia_natural = vetorHidreletrica.att(idhidreletrica_jusante).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementoMatriz(AttMatrizAfluencia_natural_tendencia, idCenario, periodo, double());
 							afluencia_natural += afluencia_incremental;
 
-							vetorHidreletrica.att(idhidreletrica_jusante).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttMatrizAfluencia_natural, idCenario, periodo, afluencia_natural);
+							vetorHidreletrica.att(idhidreletrica_jusante).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttMatrizAfluencia_natural_tendencia, idCenario, periodo, afluencia_natural);
 
 							idhidreletrica_jusante = vetorHidreletrica.att(idhidreletrica_jusante).getAtributo(AttComumHidreletrica_jusante, IdHidreletrica());
 
@@ -8862,20 +8878,22 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 					}//for (Periodo periodo = horizonte_afluencia_tendencia.getIteradorInicial(); periodo <= horizonte_afluencia_tendencia.getIteradorFinal(); horizonte_afluencia_tendencia.incrementarIterador(periodo)) {
 
-				}//for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+				}//for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
-			}//if (is_possivel_contabilizar_incremental && !is_idHidreletrica_contabilizada.getElemento(idHidreletrica)) {		
+			}//for (IdCenario idCenario = IdCenario_1; idCenario <= maiorIdCenario; idCenario++) {
 
-			if ((getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
+			a_entradaSaidaDados.setDiretorioSaida(a_diretorio_exportacao_pos_estudo);
 
-				const SmartEnupla<Periodo, double> horizonte_historico = SmartEnupla<Periodo, double>(vetorHidreletrica.att(getMenorId(IdHidreletrica())).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_incremental_historico, Periodo(), double()), 0.0);
+			if ((getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
 
-				for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica))
+				const SmartEnupla<Periodo, double> horizonte_historico = SmartEnupla<Periodo, double>(vetorHidreletrica.att(IdHidreletrica_1).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_incremental_historico, Periodo(), double()), 0.0);
+
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++)
 					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_natural_historico, horizonte_historico);
 
-				for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
-					for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+					for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
 
 						const double afluencia_incremental = vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementoVetor(AttVetorAfluencia_incremental_historico, periodo, double());
 
@@ -8894,22 +8912,20 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 
 						}//while (idhidreletrica_jusante != IdHidreletrica_Nenhum) {
 
-					}//for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+					}//for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
 
-				}//for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
+				}//for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
-			} // if ((getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
+			} // if ((getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			MPI_Barrier(MPI_COMM_WORLD);
 
-			a_entradaSaidaDados.setDiretorioSaida(a_diretorio_exportacao_pos_estudo);
-
-			if ((idProcesso == IdProcesso_mestre) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) > 0))
+			if ((idProcesso == IdProcesso_mestre) && (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) > 0))
 				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttVetorAfluencia_natural_historico);
 
-			if ((idProcesso == IdProcesso_mestre) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0))
+			if ((idProcesso == IdProcesso_mestre) && (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0))
 				a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttVetorAfluencia_incremental_historico);
 
 			int imprimir_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa = 0;
@@ -8924,24 +8940,24 @@ void Dados::validacao_operacional_ProcessoEstocasticoHidrologico(EntradaSaidaDad
 				MPI_Recv(&imprimir_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa, 1, MPI_INT, getRank(IdProcesso(idProcesso - 1)), getRank(idProcesso), MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 			if (imprimir_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa) {
-				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("HIDRELETRICA_AFLUENCIA_AttMatrizPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttMatrizAfluencia_natural);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("_info_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttMatrizAfluencia_incremental);
+				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("HIDRELETRICA_AFLUENCIA_AttMatrizPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttMatrizAfluencia_natural_tendencia);
+				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("_info_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa_PorCenarioPorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttMatrizAfluencia_incremental_tendencia);
 			}
 			else
-				throw std::invalid_argument("Erro impressao de " + getFullString(AttMatrizAfluencia_natural) + " em " + getFullString(idProcesso));
+				throw std::invalid_argument("Erro impressao de " + getFullString(AttMatrizAfluencia_natural_tendencia) + " em " + getFullString(idProcesso));
 
-			if (arranjoResolucao.getMaiorId(IdProcesso()) != idProcesso)
+			if (getAtributo(AttComumDados_maior_processo, IdProcesso()) != idProcesso)
 				MPI_Send(&imprimir_HIDRELETRICA_AFLUENCIA_AttMatrizPremissa, 1, MPI_INT, getRank(IdProcesso(idProcesso + 1)), getRank(IdProcesso(idProcesso + 1)), MPI_COMM_WORLD);
 
 			MPI_Barrier(MPI_COMM_WORLD);
 
-		}// if (getAtributo(AttComumDados_imprimir_exportacao_pos_estudo, bool())) {
+		}// if ((!strCompara(a_diretorio_exportacao_pos_estudo, "nenhum")) && ((a_imprimir_atributos_sem_recarregar) || (getAtributo(AttComumDados_imprimir_exportacao_pos_estudo, bool())))) {
 
 		//
 		// Esvazia Atributos
 		//
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica))
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++)
 			vetorHidreletrica.att(idHidreletrica).vetorAfluencia.~VetorAfluenciaEmHidreletrica();
 
 	} // try{
@@ -8957,55 +8973,22 @@ void Dados::instanciarProcessoEstocasticoHidrologicoComHistoricoAfluenciaIncreme
 		if ((a_tipo_processo_estocastico != IdProcessoEstocastico_hidrologico_bacia) && (a_tipo_processo_estocastico != IdProcessoEstocastico_hidrologico_hidreletrica))
 			throw std::invalid_argument("O metodo serve apenas para " + getFullString(IdProcessoEstocastico_hidrologico_bacia) + " e " + getFullString(IdProcessoEstocastico_hidrologico_hidreletrica));
 
-		bool isSerieTemporalAdicionadaEmVarExistente = false;
-		bool isTendenciaTemporalAdicionadaEmVarExistente = false;
-
-		bool isProcEstocasticoJaInstanciado = false;
-		if (a_processo_estocastico.getMaiorId(IdVariavelAleatoria()) != IdVariavelAleatoria_Nenhum)
-			isProcEstocasticoJaInstanciado = true;
+		a_processo_estocastico = ProcessoEstocastico();
 
 		if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) {
 
 			a_processo_estocastico.setAtributo(AttComumProcessoEstocastico_idProcessoEstocastico, IdProcessoEstocastico_hidrologico_hidreletrica);
 
-			for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
 
-				// Instancia variaveis aleatórias e variaveis aleatórias internas
-				if (!isProcEstocasticoJaInstanciado) {
+				const SmartEnupla<int, IdHidreletrica>                                       variavel_aleatoria_interna(1, std::vector<IdHidreletrica>(1, idHidreletrica));
+				const SmartEnupla<int, SmartEnupla<Periodo, double>>                         serie_temporal_variavel_aleatoria_interna(1, std::vector<SmartEnupla<Periodo, double>>(1, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double())));
+				const SmartEnupla<int, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>> tendencia_temporal_variavel_aleatoria_interna(1, std::vector<SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>>(1, getMatriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia, IdCenario(), Periodo(), double())));
 
-					const SmartEnupla<int, IdHidreletrica>                variavel_aleatoria_interna(1, std::vector<IdHidreletrica>(1, idHidreletrica));
-					const SmartEnupla<int, SmartEnupla<Periodo, double>>  serie_temporal_variavel_aleatoria_interna(1, std::vector<SmartEnupla<Periodo, double>>(1, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double())));
-					const SmartEnupla<int, SmartEnupla<Periodo, double>>  tendencia_temporal_variavel_aleatoria_interna(1, std::vector<SmartEnupla<Periodo, double>>(1, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia, Periodo(), double())));
+				a_processo_estocastico.addSeriesTemporais(idHidreletrica, variavel_aleatoria_interna, serie_temporal_variavel_aleatoria_interna);
+				a_processo_estocastico.addTendenciasTemporais(idHidreletrica, variavel_aleatoria_interna, tendencia_temporal_variavel_aleatoria_interna);
 
-					a_processo_estocastico.addSeriesTemporais(idHidreletrica, variavel_aleatoria_interna, serie_temporal_variavel_aleatoria_interna);
-					a_processo_estocastico.addTendenciasTemporais(idHidreletrica, variavel_aleatoria_interna, tendencia_temporal_variavel_aleatoria_interna);
-
-				} // if (a_processo_estocastico.getMaiorId(IdVariavelAleatoria()) != IdVariavelAleatoria_Nenhum) {
-
-				else {
-
-					IdVariavelAleatoria        idVar = IdVariavelAleatoria_Nenhum;
-					IdVariavelAleatoriaInterna idVarInterna = IdVariavelAleatoriaInterna_Nenhum;
-
-					a_processo_estocastico.getIdVariavelAleatoriaIdVariavelAleatoriaInternaFromIdFisico(idVar, idVarInterna, idHidreletrica);
-
-					if (strCompara(a_processo_estocastico.getAtributo(idVar, AttComumVariavelAleatoria_nome, std::string()), "nenhum"))
-						a_processo_estocastico.vetorVariavelAleatoria.att(idVar).setAtributo(AttComumVariavelAleatoria_nome, getFullString(idHidreletrica));
-
-					if (a_processo_estocastico.getSizeVetor(idVar, idVarInterna, AttVetorVariavelAleatoriaInterna_serie_temporal) == 0) {
-						a_processo_estocastico.vetorVariavelAleatoria.att(idVar).addSerieTemporalVariavelAleatoriaInterna(idVarInterna, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double()));
-						isSerieTemporalAdicionadaEmVarExistente = true;
-					}
-
-
-					if (a_processo_estocastico.getSizeVetor(idVar, idVarInterna, AttVetorVariavelAleatoriaInterna_tendencia_temporal) == 0) {
-						a_processo_estocastico.vetorVariavelAleatoria.att(idVar).addTendenciaTemporalVariavelAleatoriaInterna(idVarInterna, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia, Periodo(), double()));
-						isTendenciaTemporalAdicionadaEmVarExistente = true;
-					}
-
-				}
-
-			} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+			} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
 
 		} // if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) {
 
@@ -9017,77 +9000,31 @@ void Dados::instanciarProcessoEstocasticoHidrologicoComHistoricoAfluenciaIncreme
 
 			for (IdBaciaHidrografica idBaciaHidrografica = IdBaciaHidrografica_1; idBaciaHidrografica <= maiorIdBaciaHidrografica; idBaciaHidrografica++) {
 
-				SmartEnupla<int, IdHidreletrica>               variavel_aleatoria_interna;
-				SmartEnupla<int, SmartEnupla<Periodo, double>> serie_temporal_variavel_aleatoria_interna;
-				SmartEnupla<int, SmartEnupla<Periodo, double>> tendencia_temporal_variavel_aleatoria_interna;
+				SmartEnupla<int, IdHidreletrica>                                       variavel_aleatoria_interna;
+				SmartEnupla<int, SmartEnupla<Periodo, double>>                         serie_temporal_variavel_aleatoria_interna;
+				SmartEnupla<int, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>> tendencia_temporal_variavel_aleatoria_interna;
 
 				int contador = 1;
-				for (IdHidreletrica idHidreletrica = getMaiorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
 
 					if (getAtributo(idHidreletrica, AttComumHidreletrica_bacia, IdBaciaHidrografica()) == idBaciaHidrografica) {
 
-						// Instancia variaveis aleatórias e variaveis aleatórias internas
-						if (!isProcEstocasticoJaInstanciado) {
-
-							variavel_aleatoria_interna.addElemento(contador, idHidreletrica);
-							serie_temporal_variavel_aleatoria_interna.addElemento(contador, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double()));
-							tendencia_temporal_variavel_aleatoria_interna.addElemento(contador, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia, Periodo(), double()));
-
-						} // if (a_processo_estocastico.getMaiorId(IdVariavelAleatoria()) != IdVariavelAleatoria_Nenhum) {
-
-						else {
-
-							IdVariavelAleatoria        idVar = IdVariavelAleatoria_Nenhum;
-							IdVariavelAleatoriaInterna idVarInterna = IdVariavelAleatoriaInterna_Nenhum;
-
-							a_processo_estocastico.getIdVariavelAleatoriaIdVariavelAleatoriaInternaFromIdFisico(idVar, idVarInterna, idHidreletrica);
-
-							if (strCompara(a_processo_estocastico.getAtributo(idVar, AttComumVariavelAleatoria_nome, std::string()), "nenhum"))
-								a_processo_estocastico.vetorVariavelAleatoria.att(idVar).setAtributo(AttComumVariavelAleatoria_nome, getFullString(idBaciaHidrografica));
-
-							if (a_processo_estocastico.getSizeVetor(idVar, idVarInterna, AttVetorVariavelAleatoriaInterna_serie_temporal) == 0) {
-								a_processo_estocastico.vetorVariavelAleatoria.att(idVar).addSerieTemporalVariavelAleatoriaInterna(idVarInterna, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double()));
-								isSerieTemporalAdicionadaEmVarExistente = true;
-							}
-
-
-							if (a_processo_estocastico.getSizeVetor(idVar, idVarInterna, AttVetorVariavelAleatoriaInterna_tendencia_temporal) == 0) {
-								a_processo_estocastico.vetorVariavelAleatoria.att(idVar).addTendenciaTemporalVariavelAleatoriaInterna(idVarInterna, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia, Periodo(), double()));
-								isTendenciaTemporalAdicionadaEmVarExistente = true;
-							}
-
-						}
+						variavel_aleatoria_interna.addElemento(contador, idHidreletrica);
+						serie_temporal_variavel_aleatoria_interna.addElemento(contador, getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double()));
+						tendencia_temporal_variavel_aleatoria_interna.addElemento(contador, getMatriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia, IdCenario(), Periodo(), double()));
 
 						contador++;
 
 					} // if (getAtributo(idHidreletrica, AttComumHidreletrica_bacia, IdBaciaHidrografica()) == idBaciaHidrografica){
 
-				} // for (IdHidreletrica idHidreletrica = getMaiorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+				} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
 
-				if (variavel_aleatoria_interna.size() > 0) {
-					a_processo_estocastico.addSeriesTemporais(idBaciaHidrografica, variavel_aleatoria_interna, serie_temporal_variavel_aleatoria_interna);
-					a_processo_estocastico.addTendenciasTemporais(idBaciaHidrografica, variavel_aleatoria_interna, tendencia_temporal_variavel_aleatoria_interna);
-				}
+				a_processo_estocastico.addSeriesTemporais(idBaciaHidrografica, variavel_aleatoria_interna, serie_temporal_variavel_aleatoria_interna);
+				a_processo_estocastico.addTendenciasTemporais(idBaciaHidrografica, variavel_aleatoria_interna, tendencia_temporal_variavel_aleatoria_interna);
 
 			} // for (IdBaciaHidrografica idBaciaHidrografica = IdBaciaHidrografica_1; idBaciaHidrografica <= maiorIdBaciaHidrografica; idBaciaHidrografica++) {
 
 		} // else if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_bacia) {
-
-		if (isSerieTemporalAdicionadaEmVarExistente || isTendenciaTemporalAdicionadaEmVarExistente) {
-
-			for (IdVariavelAleatoria idVar = a_processo_estocastico.getMenorId(IdVariavelAleatoria()); idVar <= a_processo_estocastico.getMaiorId(IdVariavelAleatoria()); idVar++) {
-
-				a_processo_estocastico.vetorVariavelAleatoria.att(idVar).setAtributo(AttComumVariavelAleatoria_idVariavelAleatoria_determinacao, idVar);
-
-				if (isTendenciaTemporalAdicionadaEmVarExistente)
-					a_processo_estocastico.vetorVariavelAleatoria.att(idVar).calcularTendenciaTemporal();
-
-				if (isSerieTemporalAdicionadaEmVarExistente)
-					a_processo_estocastico.vetorVariavelAleatoria.att(idVar).calcularSerieTemporal();
-
-			} // for (IdVariavelAleatoria idVar = a_processo_estocastico.getMenorId(IdVariavelAleatoria()); idVar <= a_processo_estocastico.getMaiorId(IdVariavelAleatoria()); idVar++) {
-
-		} // if (isSerieTemporalAdicionadaEmVarExistente || isTendenciaTemporalAdicionadaEmVarExistente) {
 
 
 	} // try{
@@ -9095,83 +9032,241 @@ void Dados::instanciarProcessoEstocasticoHidrologicoComHistoricoAfluenciaIncreme
 } // void Dados::instanciarProcessoEstocasticoHidrologico(const IdProcessoEstocastico a_tipo_processo_estocastico) {
 
 
-void Dados::calcularDeterminacaoEspacialFromHistoricoAfluenciaNatural(EntradaSaidaDados a_entradaSaidaDados, const bool a_imprimir, const double a_valor_r2, ProcessoEstocastico& a_processo_estocastico){
+int Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(const IdCenario a_cenario_inicial, const IdCenario a_cenario_final, const IdEstagio a_estagio_inicial, const IdEstagio a_estagio_final, ProcessoEstocastico& a_processo_estocastico, const IdProcessoEstocastico a_tipo_processo_estocastico, const TipoEspacoAmostral a_tipo_espaco_amostral, const TipoCorrelacaoVariaveisAleatorias a_tipo_correlacao, const TipoModeloGeracaoSinteticaCenario a_tipo_modelo_geracao_sintetica, const bool a_estacionar, const TipoValor a_tipo_coeficiente_auto_correlacao, const int a_ordem_maxima_auto_correlacao, const TipoRelaxacaoAfluenciaIncremental a_tipo_relaxacao_afluencia_incremental) {
 
 	try {
 
-		if ((a_valor_r2 <= 0.0) || (1.0 <= a_valor_r2))
-			return;
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
-		if ((getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
+		if ((a_tipo_processo_estocastico != IdProcessoEstocastico_hidrologico_bacia) && (a_tipo_processo_estocastico != IdProcessoEstocastico_hidrologico_hidreletrica))
+			throw std::invalid_argument("O metodo serve apenas para " + getFullString(IdProcessoEstocastico_hidrologico_bacia) + " e " + getFullString(IdProcessoEstocastico_hidrologico_hidreletrica));
 
-			const SmartEnupla<Periodo, double> horizonte_historico = SmartEnupla<Periodo, double>(vetorHidreletrica.att(getMenorId(IdHidreletrica())).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_incremental_historico, Periodo(), double()), 0.0);
+		const SmartEnupla<IdEstagio, Periodo> horizonte_otimizacao = getVetor(AttVetorDados_horizonte_otimizacao, IdEstagio(), Periodo());
 
-			for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica))
-				vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_natural_historico, horizonte_historico);
+		Periodo periodo_acoplamento = horizonte_otimizacao.getElemento(a_estagio_inicial);
 
-			for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
+		if (a_estagio_final >= getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio()))
+			periodo_acoplamento = horizonte_otimizacao.getElemento(getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio()));
 
-				for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+		const Periodo periodo_inicial = horizonte_otimizacao.getElemento(a_estagio_inicial);
+		const Periodo periodo_final = horizonte_otimizacao.getElemento(a_estagio_final);
 
-					const double afluencia_incremental = vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementoVetor(AttVetorAfluencia_incremental_historico, periodo, double());
+		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-					//Atualiza afluencia_natural para a pr�pria usina e para todas as usinas a jusante da idHidreletrica
+		const IdEstagio idEstagio_acoplamento = getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio());
 
-					IdHidreletrica idhidreletrica_jusante = idHidreletrica;
+		//Estrutura �rvore
+		if (a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) == 0 && a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_arvore_cenarios) > 0)
+			return 0;
 
-					while (idhidreletrica_jusante != IdHidreletrica_Nenhum) {
+		if (a_processo_estocastico.getAtributo(AttComumProcessoEstocastico_idProcessoEstocastico, IdProcessoEstocastico()) != a_tipo_processo_estocastico)
+			return 1;
 
-						double afluencia_natural = vetorHidreletrica.att(idhidreletrica_jusante).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementoVetor(AttVetorAfluencia_natural_historico, periodo, double());
-						afluencia_natural += afluencia_incremental;
+		if (a_processo_estocastico.getAtributo(AttComumProcessoEstocastico_tipo_espaco_amostral, TipoEspacoAmostral()) != a_tipo_espaco_amostral)
+			return 2;
 
-						vetorHidreletrica.att(idhidreletrica_jusante).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_natural_historico, periodo, afluencia_natural);
+		if (a_processo_estocastico.getAtributo(AttComumProcessoEstocastico_tipo_correlacao_variaveis_aleatorias, TipoCorrelacaoVariaveisAleatorias()) != a_tipo_correlacao)
+			return 3;
 
-						idhidreletrica_jusante = vetorHidreletrica.att(idhidreletrica_jusante).getAtributo(AttComumHidreletrica_jusante, IdHidreletrica());
+		if (a_processo_estocastico.getSizeVetor(AttVetorProcessoEstocastico_mapeamento_tendencia_temporal) == 0)
+			return 333;
 
-					}//while (idhidreletrica_jusante != IdHidreletrica_Nenhum) {
+		if (true) {
 
-				}//for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+			const SmartEnupla<IdCenario, SmartEnupla<Periodo, IdRealizacao>> mapeamento_espaco_amostral = a_processo_estocastico.getMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, IdCenario(), Periodo(), IdRealizacao());
 
-			}//for (Periodo periodo = horizonte_historico.getIteradorInicial(); periodo <= horizonte_historico.getIteradorFinal(); horizonte_historico.incrementarIterador(periodo)) {
+			if (mapeamento_espaco_amostral.size() > 0) {
 
-		} // if ((getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) == 0) && (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico) > 0)) {
+				if ((mapeamento_espaco_amostral.getIteradorInicial() > a_cenario_inicial) || (mapeamento_espaco_amostral.getIteradorFinal() < a_cenario_final))
+					return 5;
 
-		SmartEnupla<IdHidreletrica, double> inicializacao(getMenorId(IdHidreletrica()), std::vector<double>(int(getMaiorId(IdHidreletrica()) - getMenorId(IdHidreletrica())) + 1, 0.0));
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
-			
-			vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_r2_natural_historico, inicializacao);
-			vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_r2_incremental_historico, inicializacao);
+				for (IdCenario idCenario = a_cenario_inicial; idCenario <= a_cenario_final; idCenario++) {
 
-			for (IdHidreletrica idHidreletrica_b = getMenorId(IdHidreletrica()); idHidreletrica_b <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica_b)) {
+					if (mapeamento_espaco_amostral.at(idCenario).size() == 0)
+						return 6;
 
-				if (idHidreletrica == idHidreletrica_b) {
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_natural_historico, idHidreletrica_b, 1.0);
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_incremental_historico, idHidreletrica_b, 1.0);
-				}
+					if ((mapeamento_espaco_amostral.at(idCenario).getIteradorInicial() > periodo_acoplamento) || (mapeamento_espaco_amostral.at(idCenario).getIteradorFinal() < periodo_final))
+						return 7;
 
-				else if (getSizeVetor(idHidreletrica_b, IdAfluencia_vazao_afluente, AttVetorAfluencia_r2_natural_historico) > 0) {
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_natural_historico, idHidreletrica_b, getElementoVetor(idHidreletrica_b, IdAfluencia_vazao_afluente, AttVetorAfluencia_r2_natural_historico, idHidreletrica, double()));
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_incremental_historico, idHidreletrica_b, getElementoVetor(idHidreletrica_b, IdAfluencia_vazao_afluente, AttVetorAfluencia_r2_incremental_historico, idHidreletrica, double()));
-				}
-				else {
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_natural_historico, idHidreletrica_b, getRQuadradoNormalizadoMaior(getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo(), double()), getVetor(idHidreletrica_b, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo(), double())));
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setElemento(AttVetorAfluencia_r2_incremental_historico, idHidreletrica_b, getRQuadradoNormalizadoMaior(getVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double()), getVetor(idHidreletrica_b, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo(), double())));
-				}
+				} // for (IdCenario idCenario = a_cenario_inicial; idCenario <= mapeamento_espaco_amostral.getIteradorFinal(); idCenario++) {
+
+				if (a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_probabilidade_realizacao) == 0)
+					return 39;
+
+				a_processo_estocastico.validar_probabilidade_realizacao();
+
+			} // if (mapeamento_espaco_amostral.size() > 0) {
+
+			else {
+
+				if (a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_probabilidade_realizacao) > 0)
+					return 38;
+
 			}
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+		} // if (true){
 
-		if (a_imprimir) {
-			a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorHidreletrica.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttVetorAfluencia_r2_natural_historico);
-			a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorHidreletrica2.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttVetorAfluencia_r2_incremental_historico);
-			a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("_info_HIDRELETRICA_AFLUENCIA_AttVetorPremissa_PorPeriodo.csv", IdHidreletrica_Nenhum, IdAfluencia_Nenhum, *this, AttVetorAfluencia_natural_historico);
+		const IdVariavelAleatoria maiorIdVariavelAleatoria = a_processo_estocastico.vetorVariavelAleatoria.getMaiorId();
+
+		if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) {
+			if (maiorIdVariavelAleatoria != IdVariavelAleatoria(getMaiorId(IdHidreletrica())))
+				return 8;
 		}
+		else if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_bacia) {
+			if (maiorIdVariavelAleatoria != IdVariavelAleatoria(getMaiorId(IdBaciaHidrografica())))
+				return 9;
+		}
+
+		for (IdVariavelAleatoria idVariavelAleatoria = IdVariavelAleatoria_1; idVariavelAleatoria <= maiorIdVariavelAleatoria; idVariavelAleatoria++) {
+
+			if ((a_processo_estocastico.getAtributo(idVariavelAleatoria, AttComumVariavelAleatoria_tipo_modelo_geracao_sintetica, TipoModeloGeracaoSinteticaCenario()) != a_tipo_modelo_geracao_sintetica) || \
+				(a_processo_estocastico.getAtributo(idVariavelAleatoria, AttComumVariavelAleatoria_tipo_coeficiente_auto_correlacao, TipoValor()) != a_tipo_coeficiente_auto_correlacao) || \
+				(a_processo_estocastico.getAtributo(idVariavelAleatoria, AttComumVariavelAleatoria_ordem_maxima_coeficiente_auto_correlacao, int()) != a_ordem_maxima_auto_correlacao))
+				return 10;
+
+			if (true) {
+
+				if (a_tipo_modelo_geracao_sintetica == TipoModeloGeracaoSinteticaCenario_lognormal_3p_sazonal) {
+
+					const SmartEnupla<Periodo, SmartEnupla<int, double>> coeficiente_linear_auto_correlacao = a_processo_estocastico.getMatriz(idVariavelAleatoria, AttMatrizVariavelAleatoria_coeficiente_linear_auto_correlacao, Periodo(), int(), double());
+
+					if (coeficiente_linear_auto_correlacao.size() == 0)
+						return 22;
+
+					if (coeficiente_linear_auto_correlacao.getIteradorInicial() > periodo_acoplamento)
+						return 23;
+
+					if (coeficiente_linear_auto_correlacao.getIteradorFinal() < periodo_final)
+						return 23;
+
+				} // if (a_tipo_modelo_geracao_sintetica == TipoModeloGeracaoSinteticaCenario_lognormal_3p_sazonal) {
+
+				const SmartEnupla<Periodo, SmartEnupla<IdRealizacao, double>> residuo_espaco_amostral = a_processo_estocastico.getMatriz(idVariavelAleatoria, AttMatrizVariavelAleatoria_residuo_espaco_amostral, Periodo(), IdRealizacao(), double());
+
+				if ((residuo_espaco_amostral.size() == 0) && (a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) > 0))
+					return 24;
+
+				if (residuo_espaco_amostral.size() > 0) {
+
+					if (a_processo_estocastico.getSizeMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral) == 0)
+						return 24;
+
+					if ((residuo_espaco_amostral.getIteradorInicial() > periodo_acoplamento) || (residuo_espaco_amostral.getIteradorFinal() < periodo_final))
+						return 25;
+
+					for (IdEstagio idEstagio = a_estagio_inicial; idEstagio <= a_estagio_final; idEstagio++) {
+
+						const SmartEnupla<Periodo, double> horizonte_estudo_estagio = getElementosMatriz(AttMatrizDados_percentual_duracao_horizonte_estudo, idEstagio, Periodo(), double());
+
+						const Periodo periodo = horizonte_estudo_estagio.getIteradorInicial();
+
+						for (Periodo periodo_espaco_amostral = residuo_espaco_amostral.getIteradorInicial(); periodo_espaco_amostral <= residuo_espaco_amostral.getIteradorFinal(); residuo_espaco_amostral.incrementarIterador(periodo_espaco_amostral)) {
+
+							if (periodo_espaco_amostral == periodo) {
+								if (residuo_espaco_amostral.at(periodo).size() == 0)
+									return 26;
+								if (residuo_espaco_amostral.at(periodo).getIteradorInicial() != IdRealizacao_1)
+									return 27;
+								break;
+							} // if (periodo_espaco_amostral == periodo) {				
+
+							//if (periodo_espaco_amostral == residuo_espaco_amostral.getIteradorFinal())
+								//return 1;
+
+						} // for (Periodo periodo_espaco_amostral = residuo_espaco_amostral.getIteradorInicial(); periodo_espaco_amostral <= residuo_espaco_amostral.getIteradorFinal(); residuo_espaco_amostral.incrementarIterador(periodo_espaco_amostral)) {
+
+					} // for (IdEstagio idEstagio = a_estagio_inicial; idEstagio <= a_estagio_final; idEstagio++) {
+
+				} // if (residuo_espaco_amostral.size() > 0){
+
+			} // if (true) {
+
+
+			for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= a_processo_estocastico.getMaiorId(idVariavelAleatoria, IdVariavelAleatoriaInterna()); idVariavelAleatoriaInterna++) {
+
+				if (a_processo_estocastico.getSizeVetor(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_coeficiente_participacao) == 0)
+					return 29;
+
+				if ((a_processo_estocastico.getIteradorInicial(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_coeficiente_participacao, Periodo()) > periodo_acoplamento) || (a_processo_estocastico.getIteradorFinal(idVariavelAleatoria, idVariavelAleatoriaInterna, AttVetorVariavelAleatoriaInterna_coeficiente_participacao, Periodo()) < periodo_final))
+					return 30;
+
+				bool hidreletrica_found = false;
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+					if (getFullString(idHidreletrica) == a_processo_estocastico.getAtributo(idVariavelAleatoria, idVariavelAleatoriaInterna, AttComumVariavelAleatoriaInterna_nome, std::string())) {
+						hidreletrica_found = true;
+						break;
+					} // if (getFullString(idHidreletrica) == a_processo_estocastico.getAtributo(idVariavelAleatoria, idVariavelAleatoriaInterna, AttComumVariavelAleatoriaInterna_nome, std::string())) {
+				} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+				if (!hidreletrica_found)
+					return 31;
+
+				if (a_processo_estocastico.getSize1Matriz(idVariavelAleatoria, idVariavelAleatoriaInterna, AttMatrizVariavelAleatoriaInterna_tendencia_temporal) == 0)
+					return 32;
+
+				if ((a_processo_estocastico.getIterador1Inicial(idVariavelAleatoria, idVariavelAleatoriaInterna, AttMatrizVariavelAleatoriaInterna_tendencia_temporal, IdCenario()) > IdCenario_1) || (a_processo_estocastico.getIterador1Final(idVariavelAleatoria, idVariavelAleatoriaInterna, AttMatrizVariavelAleatoriaInterna_tendencia_temporal, IdCenario()) < IdCenario(getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int()))))
+					return 33;
+
+				for (IdCenario idCenario = IdCenario_1; idCenario <= IdCenario(getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int())); idCenario++) {
+
+					if (idEstagio_acoplamento > a_estagio_final) {
+
+						if (Periodo(periodo_final.getTipoPeriodo(), a_processo_estocastico.getIterador2Final(idVariavelAleatoria, idVariavelAleatoriaInterna, AttMatrizVariavelAleatoriaInterna_tendencia_temporal, idCenario, Periodo()) + 1) != (periodo_final + 1))
+							return 34;
+
+					}
+					else if (idEstagio_acoplamento <= a_estagio_final) {
+
+						const Periodo periodo_otimizaca_acoplamento = getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio_acoplamento, Periodo());
+
+						if (Periodo(periodo_otimizaca_acoplamento.getTipoPeriodo(), a_processo_estocastico.getIterador2Final(idVariavelAleatoria, idVariavelAleatoriaInterna, AttMatrizVariavelAleatoriaInterna_tendencia_temporal, idCenario, Periodo()) + 1) < periodo_otimizaca_acoplamento)
+							return 35;
+
+					}//else if (idEstagio_acoplamento <= a_estagio_final) {
+
+				} // for (IdCenario idCenario = IdCenario_1; idCenario <= IdCenario(getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int())); idCenario++) {
+
+			} // for (IdVariavelAleatoriaInterna idVariavelAleatoriaInterna = IdVariavelAleatoriaInterna_1; idVariavelAleatoriaInterna <= maiorIdVariavelAleatoriaInterna; idVariavelAleatoriaInterna++) {
+
+		} // for (IdVariavelAleatoria idVariavelAleatoria = IdVariavelAleatoria_1; idVariavelAleatoria <= maiorIdVariavelAleatoria; idVariavelAleatoria++) {
+
+		if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) {
+
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+
+				const IdVariavelAleatoria  idVariavelAleatoria = IdVariavelAleatoria(idHidreletrica);
+
+				const std::vector<IdVariavelAleatoriaInterna> listaVariavelAleatoriaInterna = a_processo_estocastico.getIdObjetos(idVariavelAleatoria, IdVariavelAleatoriaInterna_Nenhum, AttComumVariavelAleatoriaInterna_nome, getFullString(idHidreletrica));
+
+				if (listaVariavelAleatoriaInterna.size() != 1)
+					return 36;
+
+			} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+
+		} // if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_hidreletrica) {
+
+		else if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_bacia) {
+
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+
+				const IdBaciaHidrografica idBaciaHidrografica = getAtributo(idHidreletrica, AttComumHidreletrica_bacia, IdBaciaHidrografica());
+
+				const IdVariavelAleatoria  idVariavelAleatoria = IdVariavelAleatoria(idBaciaHidrografica);
+
+				const std::vector<IdVariavelAleatoriaInterna> listaVariavelAleatoriaInterna = a_processo_estocastico.getIdObjetos(idVariavelAleatoria, IdVariavelAleatoriaInterna_Nenhum, AttComumVariavelAleatoriaInterna_nome, getFullString(idHidreletrica));
+
+				if (listaVariavelAleatoriaInterna.size() != 1)
+					return 37;
+
+			} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+
+		} // else if (a_tipo_processo_estocastico == IdProcessoEstocastico_hidrologico_bacia) {
+
+		return 0;
+
 	} // try{
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::calcularDeterminacaoEspacialFromHistoricoAfluenciaNatural(" + getFullString(a_valor_r2) + "): \n" + std::string(erro.what())); }
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(" + getFullString(a_cenario_final) + "," + getFullString(a_estagio_final) + ",a_processo_estocastico," + getFullString(a_tipo_espaco_amostral) + "," + getFullString(a_tipo_processo_estocastico) + "," + getFullString(a_tipo_correlacao) + "," + getFullString(a_tipo_modelo_geracao_sintetica) + "," + getFullString(a_estacionar) + "," + getFullString(a_tipo_coeficiente_auto_correlacao) + "," + getFullString(a_ordem_maxima_auto_correlacao) + "," + getFullString(a_tipo_relaxacao_afluencia_incremental) + "): \n" + std::string(erro.what())); }
 
-} // void Dados::definirEquivalenciaEspacialFromHistoricoAfluenciaNatural(const double a_valor_r2, ProcessoEstocastico& a_processo_estocastico){
-
-
+} // bool Dados::isCalculoAttOperacionaisProcessoEstocasticoHidrologicoNecessario(){
 
 
 void Dados::validaReservatorioEmHidreletrica() {
@@ -9183,7 +9278,7 @@ void Dados::validaReservatorioEmHidreletrica() {
 
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			const bool  considerar_usina = getAtributo(idHidreletrica, AttComumHidreletrica_considerar_usina, bool());
 
@@ -9204,7 +9299,7 @@ void Dados::validaReservatorioEmHidreletrica() {
 				}//if (getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_minimo) > 0 && getSizeVetor(idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo) > 0) {
 
 			} // if (considerar_usina) {
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validaReservatorioEmHidreletrica(): \n" + std::string(erro.what())); }
@@ -9248,7 +9343,7 @@ bool Dados::validaFuncaoProducaoHidreletrica(FuncaoProducaoHidreletrica& a_funca
 			for (Periodo periodo = a_horizonte_estudo.getIteradorInicial(); periodo <= a_horizonte_estudo.getIteradorFinal(); a_horizonte_estudo.incrementarIterador(periodo)) {
 				double volume = getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_minimo, periodo, double()) + getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo, periodo, double());
 
-				if (getElementoVetor(a_idHidreletrica, AttVetorHidreletrica_regularizacao, periodo, int()) == 1) {
+				if (bool(getElementoVetor(a_idHidreletrica, AttVetorHidreletrica_regularizacao, periodo, bool()))) {
 					volume = getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_minimo, periodo, double()) + (getAtributo(a_idHidreletrica, IdReservatorio_1, AttComumReservatorio_percentual_volume_util_inicial, double()) - \
 						getElementoVetor(a_idHidreletrica, IdFuncaoProducaoHidreletrica_1, AttVetorFuncaoProducaoHidreletrica_percentual_volume_minimo, periodo, double())) * \
 						getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo, periodo, double());
@@ -9269,7 +9364,7 @@ bool Dados::validaFuncaoProducaoHidreletrica(FuncaoProducaoHidreletrica& a_funca
 				const double volumeMaximo = getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_minimo, periodo, double()) + getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo, periodo, double());
 				double volume = volumeMaximo;
 
-				if (getElementoVetor(a_idHidreletrica, AttVetorHidreletrica_regularizacao, periodo, int()) == 1) {
+				if (bool(getElementoVetor(a_idHidreletrica, AttVetorHidreletrica_regularizacao, periodo, bool()))) {
 					volume = getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_minimo, periodo, double()) + (getElementoVetor(a_idHidreletrica, IdFuncaoProducaoHidreletrica_1, AttVetorFuncaoProducaoHidreletrica_percentual_volume_maximo, periodo, double()) + \
 						getAtributo(a_idHidreletrica, IdReservatorio_1, AttComumReservatorio_percentual_volume_util_inicial, double())) * \
 						getElementoVetor(a_idHidreletrica, IdReservatorio_1, AttVetorReservatorio_volume_util_maximo, periodo, double());
@@ -9800,7 +9895,7 @@ void Dados::validaSubmercado() {
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 
 		const IdSubmercado maiorIdSubmercado = getMaiorId(IdSubmercado());
-		for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado))
+		for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++)
 			validaSubmercado(idSubmercado);
 
 	} // try{
@@ -9851,7 +9946,7 @@ void Dados::validaUsinaNaoSimuladaEmSubmercado() {
 	try {
 
 		const IdSubmercado maiorIdSubmercado = getMaiorId(IdSubmercado());
-		for (IdSubmercado idSubmercado = getMenorId(IdSubmercado()); idSubmercado <= maiorIdSubmercado; vetorSubmercado.incr(idSubmercado))
+		for (IdSubmercado idSubmercado = IdSubmercado_1; idSubmercado <= maiorIdSubmercado; idSubmercado++)
 			validaUsinaNaoSimuladaEmSubmercado(idSubmercado);
 
 	} // try{
@@ -9919,20 +10014,17 @@ bool Dados::valida_historico_AfluenciaEmHidreletrica(const AttVetorAfluencia a_a
 
 		Periodo periodo_inicial_historico;
 		Periodo periodo_final_historico;
-		if (getSizeVetor(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, a_attVetorAfluencia) > 0) {
+		if (getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, a_attVetorAfluencia) > 0) {
 			historico_afluencia_carregado = true;
-			periodo_inicial_historico = getIteradorInicial(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
-			periodo_final_historico = getIteradorFinal(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
+			periodo_inicial_historico = getIteradorInicial(IdHidreletrica_1, IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
+			periodo_final_historico = getIteradorFinal(IdHidreletrica_1, IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
 			if (periodo_inicial_historico.getTipoPeriodo() != periodo_final_historico.getTipoPeriodo())
 				throw std::invalid_argument("Os periodos inicial e final do atributo " + getFullString(a_attVetorAfluencia) + " devem ser do mesmo tipo.");
 		}
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		IdHidreletrica idHidreletrica_seguinte = getMenorId(IdHidreletrica());
-		vetorHidreletrica.incr(idHidreletrica_seguinte);
-
-		for (IdHidreletrica idHidreletrica = idHidreletrica_seguinte; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_2; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			// Verifica se historico foi carregado
 
@@ -9948,7 +10040,7 @@ bool Dados::valida_historico_AfluenciaEmHidreletrica(const AttVetorAfluencia a_a
 			else
 				throw std::invalid_argument("Os elementos do atributo " + getFullString(a_attVetorAfluencia) + ", quando informados, devem ser informados para " + getFullString(IdAfluencia_vazao_afluente) + " em todas as hidreletricas.");
 
-		} // for (IdHidreletrica idHidreletrica = idHidreletrica_seguinte; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_2; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 		if (!historico_afluencia_carregado)
 			return false;
@@ -9977,23 +10069,22 @@ void Dados::calcular_historico_afluencia_incremental_com_natural() {
 			adicionaHidreletricasMontante();
 
 			const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
-			const IdHidreletrica menorIdHidreletrica = getMenorId(IdHidreletrica());
 
-			const SmartEnupla<Periodo, double> horizonte_historico = vetorHidreletrica.att(menorIdHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_natural_historico, Periodo(), double());
+			const SmartEnupla<Periodo, double> horizonte_historico = vetorHidreletrica.att(IdHidreletrica_1).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_natural_historico, Periodo(), double());
 
-			const Periodo periodo_inicial_historico = getIteradorInicial(menorIdHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
-			const Periodo periodo_final_historico = getIteradorFinal(menorIdHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
+			const Periodo periodo_inicial_historico = getIteradorInicial(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
+			const Periodo periodo_final_historico = getIteradorFinal(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
 
 			for (Periodo periodo = periodo_inicial_historico; periodo <= periodo_final_historico; horizonte_historico.incrementarIterador(periodo)) {
 
-				SmartEnupla<IdHidreletrica, double> afluencia(menorIdHidreletrica, std::vector<double>(int (maiorIdHidreletrica - menorIdHidreletrica) +1, 0.0));
+				SmartEnupla<IdHidreletrica, double> afluencia(IdHidreletrica_1, std::vector<double>(maiorIdHidreletrica, 0.0));
 
-				for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica))
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++)
 					afluencia.setElemento(idHidreletrica, getElementoVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, periodo, double()));
 
 				const SmartEnupla<IdHidreletrica, double> afluencia_incremental = calculaAfluenciaIncremental(afluencia);
 
-				for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica))
+				for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++)
 					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).addElemento(AttVetorAfluencia_incremental_historico, periodo, afluencia_incremental.at(idHidreletrica));
 
 			} // for (Periodo periodo = periodo_inicial_historico; periodo <= periodo_final_historico; horizonte_estudo.incrementarIterador(periodo)) {
@@ -10010,15 +10101,16 @@ void Dados::calcular_historico_afluencia_incremental_com_natural() {
 } // void Dados::calcular_historico_afluencia_incremental_com_natural(){
 
 
-bool Dados::valida_tendencia_AfluenciaEmHidreletrica(const AttVetorAfluencia a_attVetorAfluencia) {
+bool Dados::valida_tendencia_AfluenciaEmHidreletrica(const AttMatrizAfluencia a_attMatrizAfluencia) {
 
 	try {
 
-		if ((a_attVetorAfluencia != AttVetorAfluencia_incremental_tendencia) && (a_attVetorAfluencia != AttVetorAfluencia_natural_tendencia))
-			throw std::invalid_argument("O metodo serve apenas para " + getFullString(AttVetorAfluencia_incremental_tendencia) + " e " + getFullString(AttVetorAfluencia_natural_tendencia));
+		if ((a_attMatrizAfluencia != AttMatrizAfluencia_incremental_tendencia) && (a_attMatrizAfluencia != AttMatrizAfluencia_natural_tendencia))
+			throw std::invalid_argument("O metodo serve apenas para " + getFullString(AttMatrizAfluencia_incremental_tendencia) + " e " + getFullString(AttMatrizAfluencia_natural_tendencia));
 
 		bool tendencia_afluencia_carregado = false;
 
+		const IdCenario idCenario_final_tendencia = IdCenario(getAtributo(AttComumDados_numero_cenarios_tendencia_hidrologica, int()));
 		Periodo periodo_inicial_tendencia;
 		Periodo periodo_final_tendencia;
 
@@ -10029,23 +10121,38 @@ bool Dados::valida_tendencia_AfluenciaEmHidreletrica(const AttVetorAfluencia a_a
 		//
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
-			if (getSizeVetor(idHidreletrica, IdAfluencia_vazao_afluente, a_attVetorAfluencia) > 0) {
+			if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia) > 0) {
+
+				if (getIterador1Inicial(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, IdCenario()) > IdCenario_1)
+					throw std::invalid_argument("O Cenario inicial de " + getFullString(a_attMatrizAfluencia) + " deve ser 1.");
+				else if (getIterador1Final(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, IdCenario()) != idCenario_final_tendencia)
+					throw std::invalid_argument("O Cenario final de " + getFullString(a_attMatrizAfluencia) + " deve ser o mesmo para todas as hidreletricas.");
 
 				if (!tendencia_afluencia_carregado) {
-					periodo_inicial_tendencia = getIteradorInicial(idHidreletrica, IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
-					periodo_final_tendencia = getIteradorFinal(idHidreletrica, IdAfluencia_vazao_afluente, a_attVetorAfluencia, Periodo());
+					periodo_inicial_tendencia = getIterador2Inicial(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, IdCenario_1, Periodo());
+					periodo_final_tendencia = getIterador2Final(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, IdCenario_1, Periodo());
 
 					tendencia_afluencia_carregado = true;
 				} // if (!tendencia_afluencia_carregado) {
 
-			} // if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, a_attVetorAfluencia) > 0) {
+				for (IdCenario idCenario = IdCenario_1; idCenario <= idCenario_final_tendencia; idCenario++) {
+
+					if (getIterador2Inicial(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, idCenario, Periodo()) != periodo_inicial_tendencia)
+						throw std::invalid_argument("Cenarios em Hidreletricas com diferentes periodos iniciais de " + getFullString(a_attMatrizAfluencia) + ".");
+
+					else if (getIterador2Final(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia, idCenario, Periodo()) != periodo_final_tendencia)
+						throw std::invalid_argument("Cenarios em Hidreletricas com diferentes periodos finais de " + getFullString(a_attMatrizAfluencia) + ".");
+
+				} // for (IdCenario idCenario = IdCenario_1; idCenario <= idCenario_final_tendencia; idCenario++) {
+
+			} // if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, a_attMatrizAfluencia) > 0) {
 
 			else
 				alguma_hidreletrica_sem_tendencia = true;
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 		// Calcula afluencia incremental caso a mesma n�o tenha sido carregada e haja afluencia natural.
 
@@ -10055,20 +10162,20 @@ bool Dados::valida_tendencia_AfluenciaEmHidreletrica(const AttVetorAfluencia a_a
 		if (alguma_hidreletrica_sem_tendencia)
 			adicionarTendenciaHidrologicaHistorica();
 
-		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
+		const IdEstagio estagio_acoplamento_pre_estudo = getAtributo(AttComumDados_estagio_acoplamento_pre_estudo, IdEstagio());
 
-		const Periodo periodo_otimizacao_estagio_inicial = getElementoVetor(AttVetorDados_horizonte_otimizacao, estagio_inicial, Periodo());
+		const Periodo periodo_otimizacao_estagio_acoplamento_pre_estudo = getElementoVetor(AttVetorDados_horizonte_otimizacao, estagio_acoplamento_pre_estudo, Periodo());
 
-		const Periodo periodo_tendencia_seguinte = Periodo(periodo_otimizacao_estagio_inicial.getTipoPeriodo(), periodo_final_tendencia + 1);
+		const Periodo periodo_tendencia_seguinte = Periodo(periodo_otimizacao_estagio_acoplamento_pre_estudo.getTipoPeriodo(), periodo_final_tendencia + 1);
 
 
-		if (periodo_otimizacao_estagio_inicial != periodo_tendencia_seguinte)
-			throw std::invalid_argument("Periodo final da tendencia hidrologica " + getString(periodo_final_tendencia) + " nao acoplavel com periodo de otimizacao do estagio: " + getFullString(estagio_inicial) + " " + getString(periodo_otimizacao_estagio_inicial));
+		if (periodo_otimizacao_estagio_acoplamento_pre_estudo != periodo_tendencia_seguinte)
+			throw std::invalid_argument("Periodo final da tendencia hidrologica " + getString(periodo_final_tendencia) + " nao acoplavel com periodo de otimizacao do estagio: " + getFullString(estagio_acoplamento_pre_estudo) + " " + getString(periodo_otimizacao_estagio_acoplamento_pre_estudo));
 
 		return true;
 
 	} // try{
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::valida_tendencia_AfluenciaEmHidreletrica(" + getFullString(a_attVetorAfluencia) + "): \n" + std::string(erro.what())); }
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::valida_tendencia_AfluenciaEmHidreletrica(" + getFullString(a_attMatrizAfluencia) + "): \n" + std::string(erro.what())); }
 
 } // void Dados::valida_tendencia_AfluenciaEmHidreletrica(const IdAfluencia a_idAfluencia) {
 
@@ -10077,45 +10184,47 @@ void Dados::calcular_tendencia_afluencia_incremental_com_natural() {
 
 	try {
 
-		if (valida_tendencia_AfluenciaEmHidreletrica(AttVetorAfluencia_natural_tendencia)) {
+		if (valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_natural_tendencia)) {
 
 			const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
-			const IdHidreletrica menorIdHidreletrica = getMenorId(IdHidreletrica());
 
 			SmartEnupla<Periodo, double> horizonte_tendencia;
 
-			for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
-				if (getSizeVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia) > 0) {
-					horizonte_tendencia = vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_natural_tendencia, Periodo(), double());
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
+				if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) > 0) {
+					horizonte_tendencia = vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementosMatriz(AttMatrizAfluencia_natural_tendencia, IdCenario_1, Periodo(), double());
 					break;
 				}
 				else
-					throw std::invalid_argument("Atributo " + getFullString(AttVetorAfluencia_natural_tendencia) + " nao informado em " + getFullString(idHidreletrica) + " .");
+					throw std::invalid_argument("Atributo " + getFullString(AttMatrizAfluencia_natural_tendencia) + " nao informado em " + getFullString(idHidreletrica) + " .");
 
 			}
 
-			const Periodo   periodo_inicial_tendencia = getIteradorInicial(menorIdHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia, Periodo());
-			const Periodo   periodo_final_tendencia = getIteradorFinal(menorIdHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia, Periodo());
+			const IdCenario idCenario_final_tendencia = getIterador1Final(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia, IdCenario());
+			const Periodo   periodo_inicial_tendencia = getIterador2Inicial(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia, IdCenario_1, Periodo());
+			const Periodo   periodo_final_tendencia = getIterador2Final(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia, IdCenario_1, Periodo());
 
-			for (Periodo periodo = periodo_inicial_tendencia; periodo <= periodo_final_tendencia; horizonte_tendencia.incrementarIterador(periodo)) {
+			for (IdCenario idCenario = IdCenario_1; idCenario <= idCenario_final_tendencia; idCenario++) {
+				for (Periodo periodo = periodo_inicial_tendencia; periodo <= periodo_final_tendencia; horizonte_tendencia.incrementarIterador(periodo)) {
 
-				SmartEnupla<IdHidreletrica, double> afluencia_natural(menorIdHidreletrica, std::vector<double>(int(maiorIdHidreletrica - menorIdHidreletrica) + 1, 0.0));
+					SmartEnupla<IdHidreletrica, double> afluencia_natural(IdHidreletrica_1, std::vector<double>(int(maiorIdHidreletrica), 0.0));
 
-				for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica))
-					afluencia_natural.setElemento(idHidreletrica, getElementoVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia, periodo, double()));
+					for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++)
+						afluencia_natural.setElemento(idHidreletrica, getElementoMatriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia, idCenario, periodo, double()));
 
-				const SmartEnupla<IdHidreletrica, double> afluencia_incremental = calculaAfluenciaIncremental(afluencia_natural);
+					const SmartEnupla<IdHidreletrica, double> afluencia_incremental = calculaAfluenciaIncremental(afluencia_natural);
 
-				for (IdHidreletrica idHidreletrica = menorIdHidreletrica; idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica))
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).addElemento(AttVetorAfluencia_incremental_tendencia, periodo, afluencia_incremental.at(idHidreletrica));
+					for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++)
+						vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).addElemento(AttMatrizAfluencia_incremental_tendencia, idCenario, periodo, afluencia_incremental.at(idHidreletrica));
 
-			} // for (Periodo periodo = periodo_inicial_tendencia; periodo <= periodo_final_tendencia; horizonte_estudo.incrementarIterador(periodo)) {
+				} // for (Periodo periodo = periodo_inicial_tendencia; periodo <= periodo_final_tendencia; horizonte_estudo.incrementarIterador(periodo)) {
+			} // for (IdCenario idCenario = IdCenario_1; idCenario <= idCenario_final_tendencia; idCenario++) {
 
 		} //  if (valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_natural)){
 		else
-			throw std::invalid_argument("Atributo " + getFullString(AttVetorAfluencia_natural_tendencia) + " nao validado.");
+			throw std::invalid_argument("Atributo " + getFullString(AttMatrizAfluencia_natural_tendencia) + " nao validado.");
 
-		valida_tendencia_AfluenciaEmHidreletrica(AttVetorAfluencia_incremental_tendencia);
+		valida_tendencia_AfluenciaEmHidreletrica(AttMatrizAfluencia_incremental_tendencia);
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::calcular_tendencia_afluencia_incremental_com_natural(): \n" + std::string(erro.what())); }
@@ -10133,39 +10242,43 @@ void Dados::adicionarTendenciaHidrologicaNula() {
 
 		SmartEnupla<Periodo, double> tendencia_hidrologica;
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maioridHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		IdCenario maior_cenario_tendencia = IdCenario_Nenhum;
 
-			if (getSizeVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia) == 0) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maioridHidreletrica; idHidreletrica++) {
+
+			if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia) == 0) {
 
 				if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum) {
 
-					for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maioridHidreletrica; vetorHidreletrica.incr(idUHE)) {
+					for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maioridHidreletrica; idUHE++) {
 
-						if (getSizeVetor(idUHE, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_tendencia) > 0) {
+						if (getSize1Matriz(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia) > 0) {
 
 							idHidreletrica_tendencia_encontrada = idUHE;
 
-							tendencia_hidrologica = vetorHidreletrica.att(idUHE).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_incremental_tendencia, Periodo(), double());
+							maior_cenario_tendencia = getIterador1Final(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia, IdCenario());
+
+							tendencia_hidrologica = vetorHidreletrica.att(idUHE).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementosMatriz(AttMatrizAfluencia_incremental_tendencia, IdCenario_1, Periodo(), double());
 
 							break;
 
 						} // if (getSize1Matriz(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia) > 0) {
 
-					} // for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maioridHidreletrica; idUHE++) {
+					} // for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maioridHidreletrica; idUHE++) {
 
 					if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum)
-						throw std::invalid_argument("Nenhuma hidreletrica possui informacao em " + getFullString(AttVetorAfluencia_incremental_tendencia));
+						throw std::invalid_argument("Nenhuma hidreletrica possui informacao em " + getFullString(AttMatrizAfluencia_incremental_tendencia));
 
 				} // if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum) {
 
 				for (Periodo periodo = tendencia_hidrologica.getIteradorInicial(); periodo <= tendencia_hidrologica.getIteradorFinal(); tendencia_hidrologica.incrementarIterador(periodo))
 					tendencia_hidrologica.setElemento(periodo, 0.0);
 
-				vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_incremental_tendencia, tendencia_hidrologica);
+				vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_incremental_tendencia, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>(IdCenario_1, std::vector<SmartEnupla<Periodo, double>>(maior_cenario_tendencia, tendencia_hidrologica)));
 
 			}// if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_incremental_tendencia) == 0) {
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maioridHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maioridHidreletrica; idHidreletrica++) {
 
 
 	} // try{
@@ -10190,7 +10303,7 @@ void Dados::adicionarTendenciaHidrologicaHistorica() {
 
 			const Periodo periodo_tendencia_hidrologica_historica = getAtributo(AttComumDados_periodo_tendencia_hidrologica_historica, Periodo());
 
-			const Periodo periodo_final_historico_afluencia_incremental = getIteradorFinal(getMenorId(IdHidreletrica()), IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo());
+			const Periodo periodo_final_historico_afluencia_incremental = getIteradorFinal(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, Periodo());
 
 			if (periodo_tendencia_hidrologica_historica.getTipoPeriodo() != periodoInicialHorizonte.getTipoPeriodo())
 				throw std::invalid_argument("O TipoPeriodo de " + getFullString(AttComumDados_periodo_tendencia_hidrologica_historica) + " devem ser o mesmo do inicio do horizonte: " + getString(periodoInicialHorizonte.getTipoPeriodo()) + " .");
@@ -10214,14 +10327,14 @@ void Dados::adicionarTendenciaHidrologicaHistorica() {
 
 			const int numero_estacoes = Periodo::getMaiorEstacao(periodoInicialHorizonte.getTipoPeriodo());
 
-			for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
-				SmartEnupla<Periodo, double> incremental_tendencia;
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
+				SmartEnupla<IdCenario, SmartEnupla<Periodo, double>> incremental_tendencia(IdCenario_1, std::vector<SmartEnupla<Periodo, double>>(IdCenario_1, SmartEnupla<Periodo, double>()));
 				for (int p = numero_estacoes; p >= 0; p--) {
 					const double incremental_historico = getElementoVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_incremental_historico, periodo_tendencia_hidrologica_historica - p, double());
-					incremental_tendencia.addElemento(periodoInicialHorizonte - lag_inicial - p, incremental_historico);
+					incremental_tendencia.at(IdCenario_1).addElemento(periodoInicialHorizonte - lag_inicial - p, incremental_historico);
 				} // for (int p = numero_estacoes; p >= lag_inicial; p--) {
-				vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor(AttVetorAfluencia_incremental_tendencia, incremental_tendencia);
-			} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= getMaiorId(IdHidreletrica()); vetorHidreletrica.incr(idHidreletrica)) {
+				vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz(AttMatrizAfluencia_incremental_tendencia, incremental_tendencia);
+			} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= getMaiorId(IdHidreletrica()); idHidreletrica++) {
 
 		} // if (getAtributo(AttComumDados_tipo_tendencia_hidrologica, TipoTendenciaEstocastica()) == TipoTendenciaEstocastica_historico) {
 
@@ -10234,28 +10347,32 @@ void Dados::adicionarTendenciaHidrologicaHistorica() {
 
 			SmartEnupla<Periodo, double> tendencia_hidrologica;
 
-			for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maioridHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+			IdCenario maior_cenario_tendencia = IdCenario_Nenhum;
 
-				if (getSizeVetor(idHidreletrica, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia) == 0) {
+			for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maioridHidreletrica; idHidreletrica++) {
+
+				if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) == 0) {
 
 					if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum) {
 
-						for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maioridHidreletrica; vetorHidreletrica.incr(idUHE)) {
+						for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maioridHidreletrica; idUHE++) {
 
-							if (getSizeVetor(idUHE, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_tendencia) > 0) {
+							if (getSize1Matriz(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) > 0) {
 
 								idHidreletrica_tendencia_encontrada = idUHE;
 
-								tendencia_hidrologica = vetorHidreletrica.att(idUHE).vetorAfluencia.att(IdAfluencia_vazao_afluente).getVetor(AttVetorAfluencia_natural_tendencia, Periodo(), double());
+								maior_cenario_tendencia = getIterador1Final(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia, IdCenario());
+
+								tendencia_hidrologica = vetorHidreletrica.att(idUHE).vetorAfluencia.att(IdAfluencia_vazao_afluente).getElementosMatriz(AttMatrizAfluencia_natural_tendencia, IdCenario_1, Periodo(), double());
 
 								break;
 
 							} // if (getSize1Matriz(idUHE, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) > 0) {
 
-						} // for (IdHidreletrica idUHE = getMenorId(IdHidreletrica()); idUHE <= maioridHidreletrica; idUHE++) {
+						} // for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maioridHidreletrica; idUHE++) {
 
 						if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum)
-							throw std::invalid_argument("Nenhuma hidreletrica possui informacao em " + getFullString(AttVetorAfluencia_natural_tendencia));
+							throw std::invalid_argument("Nenhuma hidreletrica possui informacao em " + getFullString(AttMatrizAfluencia_natural_tendencia));
 
 					} // if (idHidreletrica_tendencia_encontrada == IdHidreletrica_Nenhum) {
 
@@ -10290,10 +10407,10 @@ void Dados::adicionarTendenciaHidrologicaHistorica() {
 
 					} // for (Periodo periodo_tendencia = tendencia_hidrologica.getIteradorInicial(); periodo_tendencia <= tendencia_hidrologica.getIteradorFinal(); tendencia_hidrologica.incrementarIterador(periodo_tendencia)) {
 
-					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setVetor_forced(AttVetorAfluencia_natural_tendencia, tendencia_hidrologica);
+					vetorHidreletrica.att(idHidreletrica).vetorAfluencia.att(IdAfluencia_vazao_afluente).setMatriz_forced(AttMatrizAfluencia_natural_tendencia, SmartEnupla<IdCenario, SmartEnupla<Periodo, double>>(IdCenario_1, std::vector<SmartEnupla<Periodo, double>>(maior_cenario_tendencia, tendencia_hidrologica)));
 				}// if (getSize1Matriz(idHidreletrica, IdAfluencia_vazao_afluente, AttMatrizAfluencia_natural_tendencia) == 0) {
 
-			} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maioridHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+			} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maioridHidreletrica; idHidreletrica++) {
 
 		} // else if (getAtributo(AttComumDados_tipo_tendencia_hidrologica, TipoTendenciaEstocastica()) == TipoTendenciaEstocastica_serie_informada) {
 
@@ -10306,520 +10423,26 @@ void Dados::adicionarTendenciaHidrologicaHistorica() {
 } // void Dados::adicionarTendenciaHidrologicaHistorica() {
 
 
-void Dados::validacao_mapeamento_cenarios_aberturas(EntradaSaidaDados a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_atributos_sem_recarregar, bool& a_mapeamento_cenarios_e_aberturas_carregado) {
-
-	try {
-
-
-
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
-
-		a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
-
-		if (idProcesso == IdProcesso_mestre) {
-			if ((!a_mapeamento_cenarios_e_aberturas_carregado) && (!a_imprimir_atributos_sem_recarregar)) {
-				a_entradaSaidaDados.setAppendArquivo(false);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ITERACAO_AttMatrizOperacional_PorCenarioPorEstagio.csv", IdIteracao_Nenhum, IdProcesso_Nenhum, arranjoResolucao, AttMatrizProcesso_cenario_estado_por_cenario);
-				a_entradaSaidaDados.setAppendArquivo(true);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ITERACAO_AttMatrizOperacional_PorCenarioPorEstagio.csv", IdIteracao_Nenhum, IdProcesso_Nenhum, arranjoResolucao, AttMatrizProcesso_menor_abertura_por_cenario_estado);
-				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("PROCESSO_ITERACAO_AttMatrizOperacional_PorCenarioPorEstagio.csv", IdIteracao_Nenhum, IdProcesso_Nenhum, arranjoResolucao, AttMatrizProcesso_maior_abertura_por_cenario_estado);
-			} // if ((!mapeamento_aberturas_carregado) && (!a_imprimir_atributos_sem_recarregar)) {
-		}
-
-	}
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validacao_mapeamento_cenarios_aberturas(a_entradaSaidaDados, " + a_diretorio_att_operacional + "," + a_diretorio_att_premissa + "," + getString(a_imprimir_atributos_sem_recarregar) + "): \n" + std::string(erro.what())); }
-} // void Dados::validacao_mapeamento_cenarios_aberturas(EntradaSaidaDados a_entrada_saida_dados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_att_operacionais_sem_recarregar){
-
-
-
-void Dados::definirCenariosPorProcessosEmArranjoResolucao(){
-
-	try {
-
-		const IdProcesso maior_processo = arranjoResolucao.getMaiorId(IdProcesso());
-		const int numero_processos = int(maior_processo);
-
-		const int numero_cenarios = getAtributo(AttComumDados_numero_cenarios, int());
-
-		arranjoResolucao.setAtributo(AttComumArranjoResolucao_maior_cenario, IdCenario(numero_cenarios));
-
-		const int numero_cenarios_balanceados_por_processo = numero_cenarios / numero_processos;
-		const int numero_cenarios_desbalanceados = numero_cenarios - (numero_cenarios_balanceados_por_processo * numero_processos);
-		const IdProcesso maior_processo_desbalanceado = IdProcesso(numero_cenarios_desbalanceados);
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//Filosofia: Os cenarios desbalanceados sao distribuidos, um para cada processo, comecando do processo mestre.
-
-
-		for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
-
-			arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_menor_cenario, IdCenario_Nenhum);
-			arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_maior_cenario, IdCenario_Nenhum);
-
-			if (idProcesso <= maior_processo_desbalanceado) {//Processos desbalanceados
-
-				arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_menor_cenario, IdCenario(numero_cenarios_balanceados_por_processo * int(idProcesso - 1) + int(idProcesso - 1) + 1)); //+ int(idProcesso - 1) sao os cenarios desbalanceados dos Processos anteriores			
-				arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_maior_cenario, IdCenario(numero_cenarios_balanceados_por_processo * int(idProcesso) + int(idProcesso))); //+int(idProcesso) eh o cenario desbalanceado
-
-			}//if (idProcesso <= maior_processo_desbalanceado) {
-
-			else if ((idProcesso > maior_processo_desbalanceado) && (numero_cenarios_balanceados_por_processo > 0)) {////Processos balanceados
-
-				arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_menor_cenario, IdCenario(numero_cenarios_balanceados_por_processo * int(idProcesso - 1) + 1 + numero_cenarios_desbalanceados));
-				arranjoResolucao.vetorProcesso.att(idProcesso).setAtributo(AttComumProcesso_maior_cenario, IdCenario(numero_cenarios_balanceados_por_processo * int(idProcesso) + numero_cenarios_desbalanceados));
-
-			}// // else if ((idProcesso > maior_processo_desbalanceado) && (numero_cenarios_por_processo_otimizacao > 0)) {
-
-		} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
-
-	} // try{
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::iniciarArranjoResolucao(): \n" + std::string(erro.what())); }
-
-} // void Dados::iniciarArranjoResolucao() {
-
-
-
-void Dados::mapearCenariosAberturasPorIteracaoEmArranjoResolucao() {
-
-	try {
-
-		//
-		// Definicao iteracoes do estudo
-		//
-
-		const TipoEstudo tipo_estudo = getAtributo(AttComumDados_tipo_estudo, TipoEstudo());
-		const bool visitar_todos_cenarios_por_iteracao = getAtributo(AttComumDados_visitar_todos_cenarios_por_iteracao, bool());
-
-		const int numero_processos = int(arranjoResolucao.getMaiorId(IdProcesso()));
-
-		int numero_maximo_iteracoes = getAtributo(AttComumDados_numero_maximo_iteracoes, int());
-		IdIteracao iteracao_inicial = getAtributo(AttComumDados_iteracao_inicial, IdIteracao());
-		IdIteracao iteracao_numero_maximo = IdIteracao(numero_maximo_iteracoes + 1);
-		IdIteracao iteracao_final = iteracao_numero_maximo;
-
-		int numero_iteracoes_com_divisao_cenarios = numero_maximo_iteracoes;
-
-		if (tipo_estudo == TipoEstudo_otimizacao) {
-			if (iteracao_inicial > iteracao_final)
-				throw std::invalid_argument("Iteracao inicial " + getFullString(iteracao_inicial) + "  maior que final " + getFullString(iteracao_final) + ".");
-			if ((numero_maximo_iteracoes == 0) && (iteracao_inicial > IdIteracao_0))
-				throw std::invalid_argument("Iteracao inicial deve ser " + getFullString(IdIteracao_0) + "  para " + getFullString(AttComumDados_numero_maximo_iteracoes) + " igual a 0.");
-		}
-		else if (tipo_estudo == TipoEstudo_otimizacao_e_simulacao) {
-			iteracao_final++;
-			if (iteracao_inicial > iteracao_final)
-				throw std::invalid_argument("Iteracao inicial " + getFullString(iteracao_inicial) + "  maior que final " + getFullString(iteracao_final) + ".");
-			if ((numero_maximo_iteracoes == 0) && (iteracao_inicial > IdIteracao_0))
-				throw std::invalid_argument("Iteracao inicial deve ser " + getFullString(IdIteracao_0) + "  para " + getFullString(AttComumDados_numero_maximo_iteracoes) + " igual a 0.");
-			else if ((numero_maximo_iteracoes == 0) && (iteracao_inicial == IdIteracao_0))
-				iteracao_final = iteracao_inicial;
-		}
-		else if (tipo_estudo == TipoEstudo_simulacao) {
-			iteracao_inicial = IdIteracao_0;
-			iteracao_numero_maximo = IdIteracao_0;
-			iteracao_final = IdIteracao_0;
-			numero_maximo_iteracoes = 0;
-		}
-
-		if ((numero_maximo_iteracoes > 0) && (visitar_todos_cenarios_por_iteracao))
-			numero_iteracoes_com_divisao_cenarios = 0;
-
-		arranjoResolucao.setAtributo(AttComumArranjoResolucao_iteracao_inicial, iteracao_inicial);
-		arranjoResolucao.setAtributo(AttComumArranjoResolucao_iteracao_numero_maximo, iteracao_numero_maximo);
-		arranjoResolucao.setAtributo(AttComumArranjoResolucao_iteracao_final, iteracao_final);
-
-
-		//
-		// Computar menor e maior cenarios por iteracao
-		//
-
-		for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-			Iteracao iteracao;
-			iteracao.setAtributo(AttComumIteracao_idIteracao, idIteracao);
-
-			// Simulação Inicial, Final e iteracoes com todos cenarios
-			if ((idIteracao == IdIteracao_0) || (iteracao_numero_maximo < idIteracao) || (numero_iteracoes_com_divisao_cenarios == 0)) {
-
-				iteracao.setAtributo(AttComumIteracao_menor_cenario, IdCenario_1);
-				iteracao.setAtributo(AttComumIteracao_maior_cenario, arranjoResolucao.getAtributo(AttComumArranjoResolucao_maior_cenario, IdCenario()));
-
-			} // if ((idIteracao == IdIteracao_0) || (iteracao_numero_maximo < idIteracao) || (numero_iteracoes_com_divisao_cenarios == 0)) {
-
-			else {
-
-				const int numero_cenarios = int(arranjoResolucao.getAtributo(AttComumArranjoResolucao_maior_cenario, IdCenario()) - IdCenario_1) + 1;
-
-				const int numero_cenarios_balanceados_por_iteracao = numero_cenarios / numero_iteracoes_com_divisao_cenarios;
-				const int numero_cenarios_desbalanceados = numero_cenarios - (numero_cenarios_balanceados_por_iteracao * numero_iteracoes_com_divisao_cenarios);
-				const IdIteracao maior_iteracao_desbalanceada = IdIteracao(numero_cenarios_desbalanceados + 1); // + 1 por conta da Iteracao_0
-
-				if (idIteracao <= maior_iteracao_desbalanceada) {//idIteracao desbalanceados
-
-					iteracao.setAtributo(AttComumIteracao_menor_cenario, IdCenario(numero_cenarios_balanceados_por_iteracao * int(idIteracao - 2) + int(idIteracao - 2) + 1)); //+ int(idIteracao - 2) sao os cenarios desbalanceados dos idIteracao anteriores			
-					iteracao.setAtributo(AttComumIteracao_maior_cenario, IdCenario(numero_cenarios_balanceados_por_iteracao * int(idIteracao - 1) + int(idIteracao - 1))); //+int(idIteracao - 1) eh o cenario desbalanceado
-
-				}//if (idIteracao <= maior_iteracao_desbalanceada) {
-
-				else if ((idIteracao > maior_iteracao_desbalanceada) && (numero_cenarios_balanceados_por_iteracao > 0)) {////idIteracao balanceados
-
-					iteracao.setAtributo(AttComumIteracao_menor_cenario, IdCenario(numero_cenarios_balanceados_por_iteracao * int(idIteracao - 2) + 1 + numero_cenarios_desbalanceados));
-					iteracao.setAtributo(AttComumIteracao_maior_cenario, IdCenario(numero_cenarios_balanceados_por_iteracao * int(idIteracao - 1) + numero_cenarios_desbalanceados));
-
-				}// // else if ((idIteracao > maior_iteracao_desbalanceada) && (numero_cenarios_balanceados_por_iteracao > 0)) {
-
-				else if ((idIteracao > maior_iteracao_desbalanceada) && (numero_cenarios_balanceados_por_iteracao == 0))
-					throw std::invalid_argument("Numero de cenarios insuficiente para o numero de iteracoes.");
-
-			} // else {
-
-			arranjoResolucao.vetorIteracao.add(iteracao);
-
-			for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
-
-				Processo processo;
-				processo.setAtributo(AttComumProcesso_idProcesso, idProcesso);
-				processo.setAtributo(AttComumProcesso_menor_cenario, IdCenario_Nenhum);
-				processo.setAtributo(AttComumProcesso_maior_cenario, IdCenario_Nenhum);
-
-
-				const IdCenario menor_cenario_iteracao = arranjoResolucao.getAtributo(idIteracao, AttComumIteracao_menor_cenario, IdCenario());
-				const IdCenario maior_cenario_iteracao = arranjoResolucao.getAtributo(idIteracao, AttComumIteracao_maior_cenario, IdCenario());
-
-				const int numero_cenarios_da_iteracao = int(maior_cenario_iteracao - menor_cenario_iteracao) + 1;
-
-				const int numero_cenarios_balanceados_da_iteracao_por_processo = numero_cenarios_da_iteracao / numero_processos;
-				const int numero_cenarios_desbalanceados_da_iteracao = numero_cenarios_da_iteracao - (numero_cenarios_balanceados_da_iteracao_por_processo * numero_processos);
-				const IdProcesso maior_processo_desbalanceado = IdProcesso(numero_cenarios_desbalanceados_da_iteracao); // + 1 por conta da Iteracao_0
-
-				if (idProcesso <= maior_processo_desbalanceado) {//idIteracao desbalanceados
-
-					processo.setAtributo(AttComumProcesso_menor_cenario, IdCenario(int(menor_cenario_iteracao - 1) + numero_cenarios_balanceados_da_iteracao_por_processo * int(idProcesso - 1) + int(idProcesso - 1) + 1)); //+ int(idProcesso - 2) sao os cenarios desbalanceados dos idProcessos anteriores			
-					processo.setAtributo(AttComumProcesso_maior_cenario, IdCenario(int(menor_cenario_iteracao - 1) + numero_cenarios_balanceados_da_iteracao_por_processo * int(idProcesso) + int(idProcesso))); //+int(idProcesso - 1) eh o cenario desbalanceado
-
-				}//if (idProcesso <= maior_processo_desbalanceado) {
-
-				else if ((idProcesso > maior_processo_desbalanceado) && (numero_cenarios_balanceados_da_iteracao_por_processo > 0)) {////idIteracao balanceados
-
-					processo.setAtributo(AttComumProcesso_menor_cenario, IdCenario(int(menor_cenario_iteracao - 1) + numero_cenarios_balanceados_da_iteracao_por_processo * int(idProcesso - 1) + 1 + numero_cenarios_desbalanceados_da_iteracao));
-					processo.setAtributo(AttComumProcesso_maior_cenario, IdCenario(int(menor_cenario_iteracao - 1) + numero_cenarios_balanceados_da_iteracao_por_processo * int(idProcesso) + numero_cenarios_desbalanceados_da_iteracao));
-
-				}// // else if ((idProcesso > maior_processo_desbalanceado) && (numero_cenarios_balanceados_da_iteracao_por_processo > 0)) {
-
-				arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.add(processo);
-
-			} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
-
-		} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-		//
-		// Mapeamento cenarios por iteracao
-		//
-
-		const TipoProcessamentoParalelo tipo_processamento = getAtributo(AttComumDados_tipo_processamento_paralelo, TipoProcessamentoParalelo());
-
-		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
-		const IdEstagio estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
-
-		SmartEnupla<IdEstagio, int> agrupar_aberturas(estagio_inicial, std::vector<int>(int(estagio_final - estagio_inicial) + 1, 0));
-
-		SmartEnupla<IdCenario, SmartEnupla<Periodo, IdRealizacao>> mapeamento_espaco_amostral = processoEstocastico_hidrologico.getMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, IdCenario(), Periodo(), IdRealizacao());
-		SmartEnupla<IdEstagio, Periodo> periodos(estagio_inicial, std::vector<Periodo>(int(estagio_final - estagio_inicial) + 1, Periodo()));
-		for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-			const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
-
-			if ((tipo_processamento == TipoProcessamentoParalelo_por_abertura) && (cortes_multiplos != 1))
-				agrupar_aberturas.at(idEstagio) = 1;
-
-			periodos.at(idEstagio) = mapeamento_espaco_amostral.at(mapeamento_espaco_amostral.getIteradorInicial()).getIteradores(getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio, Periodo())).at(0);
-
-		} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-		const IdProcesso idProcesso_local = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
-
-		arranjoResolucao.setVetor_forced(AttVetorArranjoResolucao_agrupar_aberturas, agrupar_aberturas);
-
-		SmartEnupla<IdEstagio, IdCenario> enupla_inicial(estagio_inicial, std::vector<IdCenario>(int(estagio_final - estagio_inicial) + 1, IdCenario_Nenhum));
-
-		for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-			const IdCenario menor_cenario_iteracao_local = arranjoResolucao.getAtributo(idIteracao, idProcesso_local, AttComumProcesso_menor_cenario, IdCenario());
-			const IdCenario maior_cenario_iteracao_local = arranjoResolucao.getAtributo(idIteracao, idProcesso_local, AttComumProcesso_maior_cenario, IdCenario());
-
-			std::vector<int> valores;
-
-			if (menor_cenario_iteracao_local != IdCenario_Nenhum) {
-
-				if (((idIteracao > iteracao_inicial) && (numero_iteracoes_com_divisao_cenarios == 0)) || ((iteracao_numero_maximo < idIteracao) && (iteracao_inicial == IdIteracao_0))) {}
-				else {
-
-					const int tamanho = (int(estagio_final - estagio_inicial) + 1) * (int(maior_cenario_iteracao_local - menor_cenario_iteracao_local) + 1);
-
-					valores = std::vector<int>(tamanho, 0);
-
-					int i = 0;
-					for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-						const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
-
-						for (IdCenario idCenario_iteracao = menor_cenario_iteracao_local; idCenario_iteracao <= maior_cenario_iteracao_local; idCenario_iteracao++) {
-
-							IdCenario idCenario_mesmo_passado = IdCenario_Excedente;
-							IdCenario idCenario_mesma_trajetoria = IdCenario_Excedente;
-
-							if (idEstagio == estagio_inicial) {
-								idCenario_mesmo_passado = arranjoResolucao.getAtributo(idIteracao, AttComumIteracao_menor_cenario, IdCenario());
-								idCenario_mesma_trajetoria = idCenario_mesmo_passado;
-							}
-
-							else {
-								for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-									if (arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_menor_cenario, IdCenario()) != IdCenario_Nenhum) {
-										for (IdCenario idCenario = arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_menor_cenario, IdCenario()); idCenario <= arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_maior_cenario, IdCenario()); idCenario++) {
-											for (IdEstagio idEstagio_past = estagio_inicial; idEstagio_past <= idEstagio; idEstagio_past++) {
-												if ((IdAbertura(processoEstocastico_hidrologico.getElementoMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, idCenario_iteracao, periodos.at(idEstagio_past), IdRealizacao())) !=
-													IdAbertura(processoEstocastico_hidrologico.getElementoMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, idCenario, periodos.at(idEstagio_past), IdRealizacao()))))
-													break;
-												else if ((idEstagio_past == IdEstagio(idEstagio - 1)) && (idCenario < idCenario_mesmo_passado))
-													idCenario_mesmo_passado = idCenario;
-												else if ((idEstagio_past == idEstagio) && (idCenario < idCenario_mesma_trajetoria))
-													idCenario_mesma_trajetoria = idCenario;
-											}
-										} // for (IdCenario idCenario = arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_menor_cenario, IdCenario()); idCenario <= arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_maior_cenario, IdCenario()); idCenario++) {
-									} // if (arranjoResolucao.getAtributo(idIteracao, idProcesso_aux, AttComumProcesso_menor_cenario, IdCenario()) != IdCenario_Nenhum) {
-								} // for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-							}
-
-							// Resolver cenario: priorizado resolver sempre o cenario de menor id daqueles que são iguais
-							if (idCenario_iteracao <= idCenario_mesma_trajetoria) {
-
-								IdCenario idCenario_estado = idCenario_iteracao;
-								if (idCenario_mesmo_passado < idCenario_estado)
-									idCenario_estado = idCenario_mesmo_passado;
-
-								valores.at(i) = int(idCenario_estado);
-
-							} // if (idCenario_iteracao <= idCenario_mesma_trajetoria) {
-							i++;
-						} // for (IdCenario idCenario_iteracao = menor_cenario_iteracao; idCenario_iteracao <= menor_cenario_iteracao; idCenario_iteracao++) {
-					} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-				} // Condicoes para mapeamento de cenarios
-
-			} // if (menor_cenario_iteracao != IdCenario_Nenhum)
-
-			for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
-
-				const IdCenario menor_cenario_iteracao = arranjoResolucao.getAtributo(idIteracao, idProcesso, AttComumProcesso_menor_cenario, IdCenario());
-				const IdCenario maior_cenario_iteracao = arranjoResolucao.getAtributo(idIteracao, idProcesso, AttComumProcesso_maior_cenario, IdCenario());
-
-				if (menor_cenario_iteracao != IdCenario_Nenhum) {
-
-					if (((idIteracao > iteracao_inicial) && (numero_iteracoes_com_divisao_cenarios == 0)) || ((iteracao_numero_maximo < idIteracao) && (iteracao_inicial == IdIteracao_0)))
-						arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso).setMatriz_forced(AttMatrizProcesso_cenario_estado_por_cenario, arranjoResolucao.vetorIteracao.att(iteracao_inicial).vetorProcesso.att(idProcesso).getMatriz(AttMatrizProcesso_cenario_estado_por_cenario, IdCenario(), IdEstagio(), IdCenario()));
-
-					else{
-
-						arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso).setMatriz_forced(AttMatrizProcesso_cenario_estado_por_cenario, SmartEnupla<IdCenario, SmartEnupla<IdEstagio, IdCenario>>(menor_cenario_iteracao, std::vector<SmartEnupla<IdEstagio, IdCenario>>(int(maior_cenario_iteracao - menor_cenario_iteracao) + 1, enupla_inicial)));
-
-						const int tamanho = (int(estagio_final - estagio_inicial) + 1) * (int(maior_cenario_iteracao - menor_cenario_iteracao) + 1);
-
-						std::vector<int> valores_recv(tamanho, 0);
-
-						if (idProcesso != idProcesso_local)
-							MPI_Recv(&valores_recv[0], tamanho, MPI_INT, getRank(idProcesso), getRank(idProcesso_local), MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-						else {
-							for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-								if (idProcesso_aux != idProcesso_local)
-									MPI_Send(&valores[0], int(valores.size()), MPI_INT, getRank(idProcesso_aux), getRank(idProcesso_aux), MPI_COMM_WORLD);
-							}
-							valores_recv = valores;
-						}
-
-						int i = 0;
-						for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-							for (IdCenario idCenario_iteracao = menor_cenario_iteracao; idCenario_iteracao <= maior_cenario_iteracao; idCenario_iteracao++) {
-								arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso).setElemento(AttMatrizProcesso_cenario_estado_por_cenario, idCenario_iteracao, idEstagio, IdCenario(valores_recv.at(i)));
-								i++;
-							}
-						}
-
-					} // Condicoes para mapeamento de cenarios
-
-				} // if (menor_cenario_iteracao != IdCenario_Nenhum)
-
-			} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
-
-		} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-
-		//
-		// Mapeamento aberturas por iteracao
-		//
-
-		SmartEnupla<IdEstagio, IdAbertura> enupla_inicial_abertura(estagio_inicial, std::vector<IdAbertura>(int(estagio_final - estagio_inicial) + 1, IdAbertura_Nenhum));
-
-		for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-			if ((IdIteracao_0 < idIteracao) && (idIteracao <= iteracao_numero_maximo)) {
-
-				for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
-
-					if ((idIteracao > IdIteracao_1) && (numero_iteracoes_com_divisao_cenarios == 0)) {
-						for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-							arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso_aux).setMatriz_forced(AttMatrizProcesso_menor_abertura_por_cenario_estado, arranjoResolucao.vetorIteracao.att(IdIteracao_1).vetorProcesso.att(idProcesso_aux).getMatriz(AttMatrizProcesso_menor_abertura_por_cenario_estado, IdCenario(), IdEstagio(), IdAbertura()));
-							arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso_aux).setMatriz_forced(AttMatrizProcesso_maior_abertura_por_cenario_estado, arranjoResolucao.vetorIteracao.att(IdIteracao_1).vetorProcesso.att(idProcesso_aux).getMatriz(AttMatrizProcesso_maior_abertura_por_cenario_estado, IdCenario(), IdEstagio(), IdAbertura()));
-						}
-					} // if ((idIteracao > IdIteracao_1) && (numero_iteracoes_com_divisao_cenarios == 0)) {
-
-					else {
-
-						SmartEnupla<IdCenario, SmartEnupla<IdEstagio, IdAbertura>> map_menor_abertura;
-						SmartEnupla<IdCenario, SmartEnupla<IdEstagio, IdAbertura>> map_maior_abertura;
-
-						// O mapeamento das aberturas engloba cenarios_estados de outros processos quando o processamento é realizado por abertura, exceto se cortes_multiplos == 1
-						for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-
-							for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-								const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
-
-								if (((tipo_processamento == TipoProcessamentoParalelo_por_abertura) && (cortes_multiplos != 1)) || (idProcesso_aux == idProcesso)) {
-
-									std::vector<IdCenario> lista_cenario_estado = arranjoResolucao.getIdsCenarioEstadoFromCenarios(idProcesso_aux, idIteracao, idEstagio);
-
-									if (lista_cenario_estado.size() > 0) {
-
-										for (int c = 0; c < int(lista_cenario_estado.size()); c++) {
-
-											const IdCenario idCenario_estado = lista_cenario_estado.at(c);
-
-											if (map_menor_abertura.size() == 0) {
-												map_menor_abertura.addElemento(idCenario_estado, enupla_inicial_abertura);
-												map_maior_abertura.addElemento(idCenario_estado, enupla_inicial_abertura);
-											}
-
-											else if ((idCenario_estado < map_menor_abertura.getIteradorInicial())) {
-												for (IdCenario idCenario = IdCenario(map_menor_abertura.getIteradorInicial() - 1); idCenario >= idCenario_estado; idCenario--) {
-													map_menor_abertura.addElemento(idCenario, enupla_inicial_abertura);
-													map_maior_abertura.addElemento(idCenario, enupla_inicial_abertura);
-												}
-											}
-											else if ((map_menor_abertura.getIteradorFinal() < idCenario_estado)) {
-												for (IdCenario idCenario = IdCenario(map_menor_abertura.getIteradorFinal() + 1); idCenario <= idCenario_estado; idCenario++) {
-													map_menor_abertura.addElemento(idCenario, enupla_inicial_abertura);
-													map_maior_abertura.addElemento(idCenario, enupla_inicial_abertura);
-												}
-											}
-
-											// Em caso de cortes_multiplos == 1, preenche-se com a abertura do mapeamento do espaço amostral.
-											if (cortes_multiplos == 1) {
-												const IdAbertura idAbertura = IdAbertura(processoEstocastico_hidrologico.getElementoMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, idCenario_estado, periodos.at(idEstagio), IdRealizacao()));
-
-												map_menor_abertura.at(idCenario_estado).at(idEstagio) = idAbertura;
-												map_maior_abertura.at(idCenario_estado).at(idEstagio) = idAbertura;
-											} // if (cortes_multiplos == 1) {
-
-											else if (tipo_processamento == TipoProcessamentoParalelo_por_cenario) {
-												map_menor_abertura.at(idCenario_estado).at(idEstagio) = IdAbertura_1;
-												map_maior_abertura.at(idCenario_estado).at(idEstagio) = IdAbertura(getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int()));
-											}
-											else {
-												map_menor_abertura.at(idCenario_estado).at(idEstagio) = IdAbertura_Excedente;
-												map_maior_abertura.at(idCenario_estado).at(idEstagio) = IdAbertura_Excedente;
-											}
-
-										} // for (int c = 0; c < int(lista_cenario_estado.size()); c++) {
-									} // if (lista_cenario_estado.size() > 0){
-								} // if (((tipo_processamento == TipoProcessamentoParalelo_por_abertura) && (cortes_multiplos != 1)) || (idProcesso_aux == idProcesso)) {
-							} // if (arranjoResolucao.getSize1Matriz(idProcesso, idIteracao, AttMatrizIteracao_menor_cenario) > 0) {
-						} // for (IdProcesso idProcesso_aux = IdProcesso_mestre; idProcesso_aux <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso_aux++) {
-
-
-						for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-							const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
-
-							if ((tipo_processamento == TipoProcessamentoParalelo_por_abertura) && (cortes_multiplos != 1)) {
-
-								const int numero_aberturas = getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int());
-
-								const int numero_processos = int(arranjoResolucao.getMaiorId(IdProcesso()));
-
-								const int numero_aberturas_balanceados_por_processo = numero_aberturas / numero_processos;
-								const int numero_aberturas_desbalanceados = numero_aberturas - (numero_aberturas_balanceados_por_processo * numero_processos);
-								const IdProcesso maior_processo_desbalanceado = IdProcesso(numero_aberturas_desbalanceados);
-
-								///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//Filosofia: Os cenarios desbalanceados sao distribuidos, um para cada processo, comecando do processo mestre.
-
-								IdAbertura menor_abertura = IdAbertura_Nenhum;
-								IdAbertura maior_abertura = IdAbertura_Nenhum;
-
-								if (idProcesso <= maior_processo_desbalanceado) {//Processos desbalanceados
-
-									menor_abertura = IdAbertura(numero_aberturas_balanceados_por_processo * int(idProcesso - 1) + int(idProcesso - 1) + 1); //+ int(idProcesso - 1) sao as aberturas desbalanceados dos Processos anteriores			
-									maior_abertura = IdAbertura(numero_aberturas_balanceados_por_processo * int(idProcesso) + int(idProcesso)); //+int(idProcesso) eh a abertura desbalanceado
-
-								}//if (idProcesso <= maior_processo_desbalanceado) {
-
-								else if ((idProcesso > maior_processo_desbalanceado) && (numero_aberturas_balanceados_por_processo > 0)) {////Processos balanceados
-
-									menor_abertura = IdAbertura(numero_aberturas_balanceados_por_processo * int(idProcesso - 1) + 1 + numero_aberturas_desbalanceados);
-									maior_abertura = IdAbertura(numero_aberturas_balanceados_por_processo * int(idProcesso) + numero_aberturas_desbalanceados);
-
-								}// // else if ((idProcesso > maior_processo_desbalanceado) && (numero_cenarios_por_processo_otimizacao > 0)) {
-
-								for (IdCenario idCenario_estado = map_menor_abertura.getIteradorInicial(); idCenario_estado <= map_menor_abertura.getIteradorFinal(); idCenario_estado++) {
-
-									if (map_menor_abertura.at(idCenario_estado).at(idEstagio) == IdAbertura_Excedente) {
-										map_menor_abertura.at(idCenario_estado).at(idEstagio) = menor_abertura;
-										map_maior_abertura.at(idCenario_estado).at(idEstagio) = maior_abertura;
-									}
-									//else if (map_menor_abertura.at(idCenario_estado).at(idEstagio) != IdAbertura_Nenhum)
-										//throw std::invalid_argument("Mapeamento Aberturas Invalido para corte multiplo unitário");
-
-								} // for (IdCenario idCenario_estado = map_menor_abertura.getIteradorInicial(); idCenario_estado <= map_menor_abertura.getIteradorFinal(); idCenario_estado++) {
-
-							} // if ((tipo_processamento == TipoProcessamentoParalelo_por_abertura) && (cortes_multiplos != 1)) {
-
-						} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
-
-						arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso).setMatriz_forced(AttMatrizProcesso_menor_abertura_por_cenario_estado, map_menor_abertura);
-						arranjoResolucao.vetorIteracao.att(idIteracao).vetorProcesso.att(idProcesso).setMatriz_forced(AttMatrizProcesso_maior_abertura_por_cenario_estado, map_maior_abertura);
-
-					} // else {
-
-				} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++) {
-			} // if ((IdIteracao_0 < idIteracao) && (idIteracao <= iteracao_numero_maximo)) {
-		} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
-	} // try{
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados::mapearCenariosAberturasPorIteracaoEmArranjoResolucao(): \n" + std::string(erro.what())); }
-
-}
-
 void Dados::adicionaHidreletricasMontante() {
 
 	try {
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_montante) == 0) {
 
-				for (IdHidreletrica idUHE_montante = getMenorId(IdHidreletrica()); idUHE_montante <= maiorIdHidreletrica; vetorHidreletrica.incr(idUHE_montante)) {
+				for (IdHidreletrica idUHE_montante = IdHidreletrica_1; idUHE_montante <= maiorIdHidreletrica; idUHE_montante++) {
 
 					if (getAtributo(idUHE_montante, AttComumHidreletrica_jusante, IdHidreletrica()) == idHidreletrica)
 						vetorHidreletrica.att(idHidreletrica).addElemento(AttVetorHidreletrica_montante, getSizeVetor(idHidreletrica, AttVetorHidreletrica_montante) + 1, idUHE_montante);
 
-				} // for (IdHidreletrica idUHE_montante = getMenorId(IdHidreletrica()); idUHE_montante <= maiorIdHidreletrica; idUHE++) {
+				} // for (IdHidreletrica idUHE_montante = IdHidreletrica_1; idUHE_montante <= maiorIdHidreletrica; idUHE++) {
 
 			}
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::adicionaHidreletricasMontante(): \n" + std::string(erro.what())); }
@@ -10833,36 +10456,39 @@ void Dados::adicionaHidreletricasMontanteDesvio() {
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_montante_desvio) == 0) {
 
-				for (IdHidreletrica idUHE_montante_desvio = getMenorId(IdHidreletrica()); idUHE_montante_desvio <= maiorIdHidreletrica; vetorHidreletrica.incr(idUHE_montante_desvio)) {
+				for (IdHidreletrica idUHE_montante_desvio = IdHidreletrica_1; idUHE_montante_desvio <= maiorIdHidreletrica; idUHE_montante_desvio++) {
 
 					if (getAtributo(idUHE_montante_desvio, AttComumHidreletrica_jusante_desvio, IdHidreletrica()) == idHidreletrica)
 						vetorHidreletrica.att(idHidreletrica).addElemento(AttVetorHidreletrica_montante_desvio, getSizeVetor(idHidreletrica, AttVetorHidreletrica_montante_desvio) + 1, idUHE_montante_desvio);
 
-				} // for (IdHidreletrica idUHE_montante_desvio = getMenorId(IdHidreletrica()); idUHE_montante_desvio <= maiorIdHidreletrica; idUHE_montante_desvio++) {
+				} // for (IdHidreletrica idUHE_montante_desvio = IdHidreletrica_1; idUHE_montante_desvio <= maiorIdHidreletrica; idUHE_montante_desvio++) {
 
 			}
 
-		} // for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		} // for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::adicionaHidreletricasMontanteDesvio(): \n" + std::string(erro.what())); }
 
 } // void Dados::adicionaHidreletricasMontanteDesvio(const IdHidreletrica a_idHidreletrica){
 
+
 SmartEnupla<IdHidreletrica, double> Dados::calculaAfluenciaIncremental(const SmartEnupla<IdHidreletrica, double>& a_afluencia_natural) {
 
 	try {
 
-		const IdHidreletrica menorIdUHE = a_afluencia_natural.getIteradorInicial();
 		const IdHidreletrica maiorIdUHE = a_afluencia_natural.getIteradorFinal();
 
-		SmartEnupla<IdHidreletrica, double> afluencia_incremental_retorno(menorIdUHE, std::vector<double>(int(maiorIdUHE - menorIdUHE) + 1, NAN));
+		if (getMaiorId(IdHidreletrica()) != maiorIdUHE)
+			throw std::invalid_argument("Faltam hidreletricas no argumento a_afluenciaNatural");
 
-		for (IdHidreletrica idUHE = menorIdUHE; idUHE <= maiorIdUHE; vetorHidreletrica.incr(idUHE)) {
+		SmartEnupla<IdHidreletrica, double> afluencia_incremental_retorno;
+
+		for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdUHE; idUHE++) {
 
 			// Inicializa Aflu�ncia Incremental com a Pr�pria Aflu�ncia Natural.
 			double afluencia_incremental = a_afluencia_natural.getElemento(idUHE);
@@ -10880,9 +10506,9 @@ SmartEnupla<IdHidreletrica, double> Dados::calculaAfluenciaIncremental(const Sma
 
 			} // for (int m = 1; m <= numMontante; m++) {
 
-			afluencia_incremental_retorno.setElemento(idUHE, afluencia_incremental);
+			afluencia_incremental_retorno.addElemento(idUHE, afluencia_incremental);
 
-		} // for (IdHidreletrica idUHE = menorIdUHE; idUHE <= maiorIdUHE; idUHE++) {
+		} // for (IdHidreletrica idUHE = IdHidreletrica_1; idUHE <= maiorIdUHE; idUHE++) {
 
 		return afluencia_incremental_retorno;
 
@@ -10892,12 +10518,905 @@ SmartEnupla<IdHidreletrica, double> Dados::calculaAfluenciaIncremental(const Sma
 } // SmartEnupla<IdHidreletrica, double> Dados::calculaAfluenciaIncremental(const SmartEnupla<IdHidreletrica, double> &a_afluenciaNatural) {
 
 
+void Dados::validacao_mapeamento_cenarios(EntradaSaidaDados a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_atributos_sem_recarregar, bool& a_mapeamento_cenarios_e_aberturas_carregado) {
+
+	try {
+
+		const IdProcesso idProcesso_local = getAtributo(AttComumDados_idProcesso, IdProcesso());
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+
+		const TipoEstudo tipo_estudo = getAtributo(AttComumDados_tipo_estudo, TipoEstudo());
+
+		IdIteracao iteracao_final = IdIteracao(getAtributo(AttComumDados_numero_maximo_iteracoes, int()) + 1);
+
+		if (iteracao_final > IdIteracao_0) {
+			if (tipo_estudo == TipoEstudo_otimizacao_e_simulacao)
+				iteracao_final = IdIteracao(iteracao_final + 1);
+			else if (tipo_estudo == TipoEstudo_simulacao)
+				iteracao_final = IdIteracao_0;
+		} // if (iteracao_final > IdIteracao_0) {
+
+		IdIteracao iteracao_inicial = getAtributo(AttComumDados_iteracao_inicial, IdIteracao());
+
+		if (tipo_estudo == TipoEstudo_simulacao)
+			iteracao_inicial = IdIteracao_0;
+
+		if (iteracao_final < iteracao_inicial)
+			throw std::invalid_argument("Atributo " + getFullString(AttComumDados_numero_maximo_iteracoes) + " nao compativel com " + getFullString(AttComumDados_iteracao_inicial));
+
+		const IdCenario maior_cenario = IdCenario(getAtributo(AttComumDados_numero_cenarios, int()));
+
+		const IdIteracao iteracao_final_map = getMaiorId(IdIteracao());
+
+		if (iteracao_final_map > IdIteracao_Nenhum) {
+			for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+				if (!vetorIteracao.isInstanciado(idIteracao))
+					throw std::invalid_argument("Iteracao " + getFullString(idIteracao) + " nao instanciada.");
+
+				for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+					if (vetorIteracao.att(idIteracao).vetorProcesso.isInstanciado(idProcesso)) {
+						if ((getSizeVetor(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) && (getSizeVetor(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio) > 0)) {}
+						else if ((getSizeVetor(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) || (getSizeVetor(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio) > 0))
+							throw std::invalid_argument("Ambos os atributos " + getFullString(AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) + ", " + getFullString(AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio) + " devem ser carregados em " + getFullString(idProcesso) + " e " + getFullString(idIteracao));
+					}
+				} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+			} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+
+			a_mapeamento_cenarios_e_aberturas_carregado = true;
+
+			const int numero_iteracoes = int(iteracao_final - iteracao_inicial) + 1;
+
+			//
+			// Validação blocos de cenários por iterações de cada processo
+			//
+			SmartEnupla<IdProcesso, IdCenario> cenario_inicial_processos(IdProcesso_mestre, std::vector<IdCenario>(maior_processo, IdCenario_Nenhum));
+			SmartEnupla<IdProcesso, IdCenario> cenario_final_processos(IdProcesso_mestre, std::vector<IdCenario>(maior_processo, IdCenario_Nenhum));
+			for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {		
+
+				IdCenario cenario_inicial_processo = IdCenario_Nenhum;
+				IdCenario cenario_final_processo = IdCenario_Nenhum;
+
+				SmartEnupla<IdIteracao, bool> iteracao_validada(iteracao_inicial, std::vector<bool>(numero_iteracoes, false));
+				int numero_iteracoes_validadas = 0;
+
+				while (numero_iteracoes_validadas != numero_iteracoes) {
+					bool alguma_iteracao_validada = false;
+					for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+						if (!iteracao_validada.getElemento(idIteracao)) {
+
+							if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+
+								IdCenario cenario_inicial = getIterador1Inicial(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+								IdCenario cenario_final = getIterador1Final(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+
+								bool validado = false;
+								if ((cenario_inicial_processo <= cenario_inicial) && (cenario_final <= cenario_inicial_processo))
+									validado = true;
+
+								else if ((cenario_inicial < cenario_inicial_processo) && (cenario_final == IdCenario(cenario_inicial_processo - 1))) {
+									cenario_inicial_processo = cenario_inicial;
+									validado = true;
+								}
+
+								else if ((cenario_final > cenario_final_processo) && (cenario_inicial == IdCenario(cenario_final_processo + 1))) {
+									cenario_final_processo = cenario_final;
+									validado = true;
+								}
+
+								else if ((cenario_inicial <= cenario_inicial_processo) && (cenario_inicial_processo <= cenario_final)) {
+									cenario_inicial_processo = cenario_inicial;
+									if (cenario_final_processo < cenario_final)
+										cenario_final_processo = cenario_final;
+									validado = true;
+								}
+								else if ((cenario_final_processo <= cenario_final) && (cenario_inicial <= cenario_final_processo)) {
+									cenario_final_processo = cenario_final;
+									if (cenario_inicial < cenario_inicial_processo)
+										cenario_inicial_processo = cenario_inicial;
+									validado = true;
+								}
+
+								if (validado) {
+									iteracao_validada.setElemento(idIteracao, true);
+									numero_iteracoes_validadas++;
+									alguma_iteracao_validada = true;
+								}
+
+							} // if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+						} // if (!iteracao_validada.getElemento(idIteracao)) {
+						if (numero_iteracoes_validadas == numero_iteracoes)
+							break;
+					} // for (IdIteracao idIteracao = IdIteracao(iteracao_inicial + 1); idIteracao <= iteracao_final; idIteracao++) {
+					if (!alguma_iteracao_validada) {
+						for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+							if (!iteracao_validada.getElemento(idIteracao))
+								throw std::invalid_argument("Inviavel o mapeamento de cenarios de " + getFullString(idIteracao) + " em " + getFullString(idProcesso));
+						}
+					} // if (!alguma_iteracao_validada) {
+				} // while (numero_iteracoes_validadas != numero_iteracoes) {
+				cenario_inicial_processos.at(idProcesso) = cenario_inicial_processo;
+				cenario_final_processos.at(idProcesso) = cenario_final_processo;
+			} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+			//
+			// Validação de cenários nos processos
+			//
+			IdCenario cenario_inicial_processo = cenario_inicial_processos.at(IdProcesso_mestre);
+			IdCenario cenario_final_processo = cenario_final_processos.at(IdProcesso_mestre);
+
+			SmartEnupla<IdProcesso, bool> processo_validado(IdProcesso_mestre, std::vector<bool>(maior_processo, false));
+			processo_validado.setElemento(IdProcesso_mestre, true);
+			int numero_processos_validados = 1;
+
+			while (numero_processos_validados != int(maior_processo)) {
+				bool algum_processo_validado = false;
+				for (IdProcesso idProcesso = IdProcesso(IdProcesso_mestre + 1); idProcesso <= maior_processo; idProcesso++) {
+					if (!processo_validado.getElemento(idProcesso)) {
+
+						IdCenario cenario_inicial = cenario_inicial_processos.at(idProcesso);
+						IdCenario cenario_final = cenario_final_processos.at(idProcesso);
+
+						bool validado = false;
+						if ((cenario_inicial_processo <= cenario_inicial) && (cenario_final <= cenario_final_processo))
+							validado = true;
+
+						else if ((cenario_inicial < cenario_inicial_processo) && (cenario_final == IdCenario(cenario_inicial_processo - 1))) {
+							cenario_inicial_processo = cenario_inicial;
+							validado = true;
+						}
+
+						else if ((cenario_final > cenario_final_processo) && (cenario_inicial == IdCenario(cenario_final_processo + 1))) {
+							cenario_final_processo = cenario_final;
+							validado = true;
+						}
+
+						else if ((cenario_inicial <= cenario_inicial_processo) && (cenario_inicial_processo <= cenario_final)) {
+							cenario_inicial_processo = cenario_inicial;
+							if (cenario_final_processo < cenario_final)
+								cenario_final_processo = cenario_final;
+							validado = true;
+						}
+						else if ((cenario_final_processo <= cenario_final) && (cenario_inicial <= cenario_final_processo)) {
+							cenario_final_processo = cenario_final;
+							if (cenario_inicial < cenario_inicial_processo)
+								cenario_inicial_processo = cenario_inicial;
+							validado = true;
+						}
+
+						if (validado) {
+							processo_validado.setElemento(idProcesso, true);
+							numero_processos_validados++;
+							algum_processo_validado = true;
+						}
+
+					} // if (!iteracao_validada.getElemento(idIteracao)) {
+					if (numero_processos_validados == int(maior_processo))
+						break;
+				} //  for (IdProcesso idProcesso = IdProcesso(IdProcesso_mestre + 1); idProcesso <= maior_processo; idProcesso++) {
+				if (!algum_processo_validado) {
+					for (IdProcesso idProcesso = IdProcesso(IdProcesso_mestre + 1); idProcesso <= maior_processo; idProcesso++) {
+						if (!processo_validado.getElemento(idProcesso))
+							throw std::invalid_argument("Inviavel o mapeamento de " + getFullString(cenario_inicial_processos.at(idProcesso)) + " - " + getFullString(cenario_final_processos.at(idProcesso)) + " em " + getFullString(idProcesso));
+					}
+				} // if (!alguma_iteracao_validada) {
+				setAtributo(AttComumDados_menor_cenario_do_processo, cenario_inicial_processos.at(idProcesso_local));
+				setAtributo(AttComumDados_maior_cenario_do_processo, cenario_final_processos.at(idProcesso_local));
+			} // while (numero_processos_validados != int(maior_processo)) {
+
+			IdCenario menor_cenario_carregado = IdCenario_Nenhum;
+			IdCenario maior_cenario_carregado = IdCenario_Nenhum;
+			for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+				if (cenario_final_processos.at(idProcesso) > maior_cenario_carregado)
+					maior_cenario_carregado = cenario_final_processos.at(idProcesso);
+				if (cenario_inicial_processos.at(idProcesso) < menor_cenario_carregado)
+					menor_cenario_carregado = cenario_inicial_processos.at(idProcesso);
+			}
+			if (menor_cenario_carregado != IdCenario_1)
+				throw std::invalid_argument("O menor cenario no mapeamento de cenarios deve ser " + getFullString(IdCenario_1));
+
+			if (maior_cenario_carregado != maior_cenario)
+				throw std::invalid_argument("O maior cenario no mapeamento de cenarios deve ser " + getFullString(maior_cenario));
+
+		} // if (iteracao_final_map > IdIteracao_Nenhum) {
+
+		else if ((tipo_estudo == TipoEstudo_otimizacao_e_simulacao) || (tipo_estudo == TipoEstudo_otimizacao))
+			defineCenariosOtimizacao(iteracao_inicial, iteracao_final);
+		else if (tipo_estudo == TipoEstudo_simulacao)
+			defineCenariosSimulacao();
+
+	}
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validacao_mapeamento_cenarios(a_entradaSaidaDados, " + a_diretorio_att_operacional + "," + a_diretorio_att_premissa + "," + getString(a_imprimir_atributos_sem_recarregar) + "): \n" + std::string(erro.what())); }
+} // void Dados::validacao_mapeamento_cenarios_aberturas(EntradaSaidaDados a_entrada_saida_dados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_att_operacionais_sem_recarregar){
+
+void Dados::validacao_mapeamento_aberturas(EntradaSaidaDados a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_atributos_sem_recarregar, bool& a_mapeamento_cenarios_e_aberturas_carregado) {
+
+	try {
+
+		const IdProcesso idProcesso_local = getAtributo(AttComumDados_idProcesso, IdProcesso());
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+
+		const TipoEstudo tipo_estudo = getAtributo(AttComumDados_tipo_estudo, TipoEstudo());
+
+		IdIteracao iteracao_final = IdIteracao(getAtributo(AttComumDados_numero_maximo_iteracoes, int()) + 1);
+
+		if (iteracao_final > IdIteracao_0) {
+			if (tipo_estudo == TipoEstudo_otimizacao_e_simulacao)
+				iteracao_final = IdIteracao(iteracao_final + 1);
+			else if (tipo_estudo == TipoEstudo_simulacao)
+				iteracao_final = IdIteracao_0;
+		} // if (iteracao_final > IdIteracao_0) {
+
+		IdIteracao iteracao_inicial = getAtributo(AttComumDados_iteracao_inicial, IdIteracao());
+
+		if (tipo_estudo == TipoEstudo_simulacao)
+			iteracao_inicial = IdIteracao_0;
+
+		if (iteracao_final < iteracao_inicial)
+			throw std::invalid_argument("Atributo " + getFullString(AttComumDados_numero_maximo_iteracoes) + " nao compativel com " + getFullString(AttComumDados_iteracao_inicial));
+
+		const IdCenario maior_cenario = IdCenario(getAtributo(AttComumDados_numero_cenarios, int()));
+
+		const IdIteracao iteracao_final_map = getMaiorId(IdIteracao());
+
+
+		//
+		// Validacao Mapeamento Aberturas
+		//
+
+		if ((a_mapeamento_cenarios_e_aberturas_carregado) && ((tipo_estudo == TipoEstudo_otimizacao_e_simulacao) || (tipo_estudo == TipoEstudo_otimizacao))) {
+
+			const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
+			const IdEstagio estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
+
+			//
+			// Validação de aberturas nos cenarios
+			//
+
+			for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+
+				for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+
+					SmartEnupla<IdProcesso, SmartEnupla<IdCenario, bool>> cenario_validado;
+
+					int numero_cenarios_iteracao = 0;
+					for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+						if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+							const IdCenario cenario_inicial = getIterador1Inicial(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+							const IdCenario cenario_final = getIterador1Final(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+							if ((cenario_inicial != IdCenario_Nenhum) && (cenario_final != IdCenario_Nenhum)) {
+								numero_cenarios_iteracao += int(cenario_final - cenario_inicial) + 1;
+								cenario_validado.addElemento(idProcesso, SmartEnupla<IdCenario, bool>(cenario_inicial, std::vector<bool>(int(cenario_final - cenario_inicial) + 1, false)));
+							} // if ((cenario_inicial != IdCenario_Nenhum) && (cenario_final != IdCenario_Nenhum)) {
+						} // if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+					} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+
+					const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
+					const int numero_aberturas = getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int());
+
+					IdAbertura abertura_inicial_cenarios = IdAbertura_Nenhum;
+					IdAbertura abertura_final_cenarios = IdAbertura_Nenhum;
+
+					int numero_cenarios_validados = 0;
+
+					const IdAbertura abertura_inicial_ref_mestre = getElementoMatriz(idIteracao, IdProcesso_mestre, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, getIterador1Inicial(idIteracao, IdProcesso_mestre, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario()), idEstagio, IdAbertura());
+					const IdAbertura abertura_final_ref_mestre = getElementoMatriz(idIteracao, IdProcesso_mestre, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, getIterador1Inicial(idIteracao, IdProcesso_mestre, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario()), idEstagio, IdAbertura());
+
+					if ((abertura_inicial_ref_mestre == IdAbertura_Nenhum) || (abertura_final_ref_mestre == IdAbertura_Nenhum))
+						throw std::invalid_argument("Aberturas inicial e final em " + getFullString(idIteracao) + "," + getFullString(IdProcesso_mestre) + "," + getFullString(getIterador1Inicial(idIteracao, IdProcesso_mestre, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario())) + "," + getFullString(idEstagio) + " nao devem ser " + getFullString(IdAbertura_Nenhum) + ".");
+
+					bool aberturas_iguais_na_iteracao = true;
+
+					// O processamento por abertura ocorre quando:
+					// 1- Aberturas diferente de Nenhum somente no cenario_inicial de cada processo
+					// 2- Aberturas entre processos nao se sobrepoem
+					bool processamento_por_abertura = true;
+
+					while (numero_cenarios_validados != numero_cenarios_iteracao) {
+						bool algum_cenario_validado = false;
+
+						for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+							if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+
+								const IdCenario cenario_inicial = getIterador1Inicial(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+								const IdCenario cenario_final = getIterador1Final(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+
+								const IdAbertura abertura_inicial_ref_processo = getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, cenario_inicial, idEstagio, IdAbertura());
+								const IdAbertura abertura_final_ref_processo = getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, cenario_inicial, idEstagio, IdAbertura());
+
+								for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+									if (!cenario_validado.at(idProcesso).getElemento(idCenario)) {
+
+										const IdAbertura abertura_inicial = getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura());
+										const IdAbertura abertura_final = getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura());
+
+										if (abertura_final > IdAbertura(numero_aberturas))
+											throw std::invalid_argument("Abertura final em " + getFullString(idIteracao) + "," + getFullString(idProcesso) + "," + getFullString(idCenario) + "," + getFullString(idEstagio) + " maior que numero de aberturas do estagio.");
+										else if ((abertura_inicial == IdAbertura_Nenhum) && (abertura_final > IdAbertura_Nenhum))
+											throw std::invalid_argument("Aberturas inicial " + getFullString(abertura_inicial) + " e final " + getFullString(abertura_final) + " em " + getFullString(idIteracao) + "," + getFullString(idProcesso) + "," + getFullString(idCenario) + "," + getFullString(idEstagio) + " sao incompativeis.");
+										else if ((abertura_inicial > IdAbertura_Nenhum) && (abertura_final == IdAbertura_Nenhum))
+											throw std::invalid_argument("Aberturas inicial " + getFullString(abertura_inicial) + " e final " + getFullString(abertura_final) + " em " + getFullString(idIteracao) + "," + getFullString(idProcesso) + "," + getFullString(idCenario) + "," + getFullString(idEstagio) + " sao incompativeis.");
+
+										if ((idCenario > cenario_inicial) && (abertura_inicial_ref_processo != IdAbertura_Nenhum) && (abertura_inicial != IdAbertura_Nenhum))
+											processamento_por_abertura = false;
+
+										if ((abertura_inicial != abertura_inicial_ref_mestre) || (abertura_final != abertura_final_ref_mestre))
+											aberturas_iguais_na_iteracao = false;
+
+										bool validado = false;
+
+										if (abertura_inicial == IdAbertura_Nenhum) {
+											validado = true;
+
+											if (cortes_multiplos > 0)
+												throw std::invalid_argument("Aberturas inicial " + getFullString(abertura_inicial) + " e final " + getFullString(abertura_final) + " em " + getFullString(idIteracao) + "," + getFullString(idProcesso) + "," + getFullString(idCenario) + "," + getFullString(idEstagio) + " nao compativeis com Multi Cut.");
+										}
+
+										else {
+
+											if ((abertura_inicial_cenarios == IdAbertura_Nenhum) && (abertura_final_cenarios == IdAbertura_Nenhum)) {
+												abertura_inicial_cenarios = abertura_inicial;
+												abertura_final_cenarios = abertura_final;
+												validado = true;
+											}
+
+											else if ((abertura_inicial < abertura_inicial_cenarios) && (abertura_final == IdAbertura(abertura_inicial_cenarios - 1))) {
+												abertura_inicial_cenarios = abertura_inicial;
+												validado = true;
+											}
+
+											else if ((abertura_final > abertura_final_cenarios) && (abertura_inicial == IdAbertura(abertura_final_cenarios + 1))) {
+												abertura_final_cenarios = abertura_final;
+												validado = true;
+											}
+
+											else if ((abertura_inicial_cenarios <= abertura_inicial) && (abertura_final <= abertura_final_cenarios)) {
+												validado = true;
+												processamento_por_abertura = false;
+											}
+
+											else if ((abertura_inicial <= abertura_inicial_cenarios) && (abertura_inicial_cenarios <= abertura_final)) {
+												abertura_inicial_cenarios = abertura_inicial;
+												if (abertura_final_cenarios < abertura_final)
+													abertura_final_cenarios = abertura_final;
+												validado = true;
+												processamento_por_abertura = false;
+											}
+											else if ((abertura_final_cenarios <= abertura_final) && (abertura_inicial <= abertura_final_cenarios)) {
+												abertura_final_cenarios = abertura_final;
+												if (abertura_inicial < abertura_inicial_cenarios)
+													abertura_inicial_cenarios = abertura_inicial;
+												validado = true;
+												processamento_por_abertura = false;
+											}
+										}
+
+										if (validado) {
+											cenario_validado.at(idProcesso).setElemento(idCenario, true);
+											numero_cenarios_validados++;
+											algum_cenario_validado = true;
+										}
+
+									} // if (!iteracao_validada.getElemento(idIteracao)) {
+									if (numero_cenarios_validados == numero_cenarios_iteracao)
+										break;
+								} // for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+							} // if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+						} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+						if (!algum_cenario_validado) {
+							for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+								if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+									const IdCenario cenario_inicial = getIterador1Inicial(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+									const IdCenario cenario_final = getIterador1Final(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+
+									for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+										if (!cenario_validado.at(idProcesso).getElemento(idCenario))
+											throw std::invalid_argument("Inviavel o mapeamento de " + getFullString(getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura())) + " - " + getFullString(getElementoMatriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura())) + " em " + getFullString(idCenario) + " e " + getFullString(idEstagio) + " e " + getFullString(idIteracao));
+									}
+								} // if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+							}
+						} // if (!algum_cenario_validado) {
+					} // while (numero_cenarios_validados != numero_cenarios_iteracao) {
+
+					if (((idIteracao == IdIteracao_0) || ((tipo_estudo == TipoEstudo_otimizacao_e_simulacao) && (idIteracao == iteracao_final))) && ((abertura_inicial_cenarios != IdAbertura_Nenhum) || (abertura_final_cenarios != IdAbertura_Nenhum)))
+						throw std::invalid_argument("Aberturas devem ser Nenhum no mapeamento de " + getFullString(idEstagio) + " e " + getFullString(idIteracao));
+					else if ((abertura_inicial_cenarios == IdAbertura_Nenhum) || (abertura_final_cenarios == IdAbertura_Nenhum))
+						throw std::invalid_argument("Aberturas invalidas no mapeamento de " + getFullString(idEstagio) + " e " + getFullString(idIteracao));
+
+					if ((aberturas_iguais_na_iteracao) && (processamento_por_abertura))
+						throw std::invalid_argument("Falha no mapeamento de " + getFullString(idEstagio) + ".");
+
+					// Single cut
+					if (cortes_multiplos == 0) {
+
+						if (abertura_inicial_cenarios != IdAbertura_1)
+							throw std::invalid_argument("Abertura inicial no mapeamento de " + getFullString(idEstagio) + " incompativel com numero de aberturas do estagio.");
+
+						if (abertura_final_cenarios != IdAbertura(numero_aberturas))
+							throw std::invalid_argument("Abertura final no mapeamento de " + getFullString(idEstagio) + " incompativel com numero de aberturas do estagio.");
+
+						if (aberturas_iguais_na_iteracao)
+							vetorIteracao.att(idIteracao).addElemento(AttVetorIteracao_tipo_processamento_paralelo, idEstagio, TipoProcessamentoParalelo_por_cenario);
+
+						else if (processamento_por_abertura)
+							vetorIteracao.att(idIteracao).addElemento(AttVetorIteracao_tipo_processamento_paralelo, idEstagio, TipoProcessamentoParalelo_por_abertura);
+
+						else
+							throw std::invalid_argument("Mapeamento de " + getFullString(idEstagio) + " nao compativel com Single Cut.");
+
+					} // if (cortes_multiplos == 0) {
+
+					// Multi cut
+					else if (cortes_multiplos > 0) {
+
+						if (int(abertura_final_cenarios) > numero_aberturas)
+							throw std::invalid_argument("Abertura final no mapeamento de " + getFullString(idEstagio) + " incompativel com numero de aberturas do estagio.");
+
+						if ((processamento_por_abertura) && (abertura_inicial_cenarios == IdAbertura_1) && (abertura_final_cenarios == IdAbertura(numero_aberturas)))
+							vetorIteracao.att(idIteracao).addElemento(AttVetorIteracao_tipo_processamento_paralelo, idEstagio, TipoProcessamentoParalelo_por_abertura);
+						else if (processamento_por_abertura)
+							throw std::invalid_argument("Mapeamento de " + getFullString(idEstagio) + " com processamento por abertura so eh compativel com Multi Cut de mesmo numero de aberturas do estagio.");
+						else
+							vetorIteracao.att(idIteracao).addElemento(AttVetorIteracao_tipo_processamento_paralelo, idEstagio, TipoProcessamentoParalelo_por_cenario);
+
+					} // else if (cortes_multiplos > 0) {
+
+				} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+
+			} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
+
+		} // if (getMaiorId(IdIteracao()) > IdIteracao_Nenhum) {
+		else if ((tipo_estudo == TipoEstudo_otimizacao_e_simulacao) || (tipo_estudo == TipoEstudo_otimizacao))
+			defineMapeamentoAberturas(iteracao_inicial, iteracao_final);
+
+
+		a_entradaSaidaDados.setDiretorioSaida(a_diretorio_att_operacional);
+
+		if (idProcesso_local == IdProcesso_mestre) {
+			if ((!a_mapeamento_cenarios_e_aberturas_carregado) && (!a_imprimir_atributos_sem_recarregar)) {
+				a_entradaSaidaDados.setAppendArquivo(false);
+				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("ITERACAO_PROCESSO_AttMatrizOperacional_PorCenarioPorEstagio.csv", IdIteracao_Nenhum, IdProcesso_Nenhum, *this, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio);
+				a_entradaSaidaDados.setAppendArquivo(true);
+				a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("ITERACAO_PROCESSO_AttMatrizOperacional_PorCenarioPorEstagio.csv", IdIteracao_Nenhum, IdProcesso_Nenhum, *this, AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio);
+			} // if ((!mapeamento_aberturas_carregado) && (!a_imprimir_atributos_sem_recarregar)) {
+		}
+
+	}
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::validacao_mapeamento_aberturas(a_entradaSaidaDados, " + a_diretorio_att_operacional + "," + a_diretorio_att_premissa + "," + getString(a_imprimir_atributos_sem_recarregar) + "): \n" + std::string(erro.what())); }
+} // void Dados::validacao_mapeamento_cenarios_aberturas(EntradaSaidaDados a_entrada_saida_dados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_att_operacionais_sem_recarregar){
+
+
+void Dados::defineMapeamentoAberturas(const IdIteracao a_iteracao_inicial, const IdIteracao a_iteracao_final) {
+
+	try {
+
+		const TipoEstudo tipo_estudo = getAtributo(AttComumDados_tipo_estudo, TipoEstudo());
+
+		if ((tipo_estudo != TipoEstudo_otimizacao_e_simulacao) && (tipo_estudo != TipoEstudo_otimizacao))
+			return;
+
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+
+		const int numero_processos_paralelos = getAtributo(AttComumDados_numero_processos_paralelos, int());
+
+		const TipoProcessamentoParalelo tipoProcessamentoParalelo = getAtributo(AttComumDados_tipo_processamento_paralelo, TipoProcessamentoParalelo());
+
+		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
+		const IdEstagio   estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
+
+		for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+			for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+
+				vetorIteracao.att(idIteracao).setElemento(AttVetorIteracao_tipo_processamento_paralelo, idEstagio, tipoProcessamentoParalelo);
+
+				const Periodo periodo = getElementoVetor(AttVetorDados_horizonte_otimizacao, idEstagio, Periodo());
+
+				const int numero_aberturas = getElementoVetor(AttVetorDados_numero_aberturas, idEstagio, int());
+				const int cortes_multiplos = getElementoVetor(AttVetorDados_cortes_multiplos, idEstagio, int());
+
+				for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+					if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+
+						const IdCenario cenario_inicial = getIterador1Inicial(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+						const IdCenario cenario_final = getIterador1Final(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, IdCenario());
+
+						if (tipoProcessamentoParalelo == TipoProcessamentoParalelo_por_cenario) {
+
+							int numero_aberturas_efetivas = numero_aberturas;
+							if (cortes_multiplos > 0)
+								numero_aberturas_efetivas = cortes_multiplos;
+
+							const IdAbertura abertura_maxima = IdAbertura(numero_aberturas);
+
+							for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+
+								if ((idIteracao == IdIteracao_0) || ((idIteracao == a_iteracao_final) && (tipo_estudo == TipoEstudo_otimizacao_e_simulacao)))
+									vetorIteracao.att(idIteracao).setAberturasInicialFinalMapeamento(idProcesso, idCenario, idEstagio, IdAbertura_Nenhum, IdAbertura_Nenhum);
+
+								else {
+
+									IdAbertura abertura_inicial = IdAbertura(processoEstocastico_hidrologico.getElementoMatriz(AttMatrizProcessoEstocastico_mapeamento_espaco_amostral, idCenario, periodo, IdRealizacao()));
+									IdAbertura abertura_final = abertura_inicial;
+
+									int numero_aberturas_cenario = 1;
+									while (numero_aberturas_cenario != numero_aberturas_efetivas) {
+
+										if (abertura_final < abertura_maxima) {
+											abertura_final = IdAbertura(abertura_final + 1);
+											numero_aberturas_cenario++;
+										}
+
+										if (abertura_inicial > IdAbertura_1) {
+											if (numero_aberturas_cenario != numero_aberturas_efetivas) {
+												abertura_inicial = IdAbertura(abertura_inicial - 1);
+												numero_aberturas_cenario++;
+											}
+										}
+
+									} // while (numero_aberturas_cenario != numero_aberturas_a_definir) {
+
+									vetorIteracao.att(idIteracao).setAberturasInicialFinalMapeamento(idProcesso, idCenario, idEstagio, abertura_inicial, abertura_final);
+
+								}
+
+							} // for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+
+						} // if (tipoProcessamentoParalelo == TipoProcessamentoParalelo_por_cenario) {
+
+						else if (tipoProcessamentoParalelo == TipoProcessamentoParalelo_por_abertura) {
+
+							if ((idIteracao == IdIteracao_0) || ((idIteracao == a_iteracao_final) && (tipo_estudo == TipoEstudo_otimizacao_e_simulacao))) {
+								for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++)
+									vetorIteracao.att(idIteracao).setAberturasInicialFinalMapeamento(idProcesso, idCenario, idEstagio, IdAbertura_Nenhum, IdAbertura_Nenhum);
+							}
+
+							else {
+
+								if ((cortes_multiplos > 0) && (numero_aberturas != cortes_multiplos))
+									throw std::invalid_argument("Nao eh possivel realizar" + getFullString(tipoProcessamentoParalelo) + " com " + getFullString(AttVetorDados_cortes_multiplos) + " diferentes do numero de aberturas em " + getFullString(idEstagio));
+
+								const int numero_aberturas_por_processo = numero_aberturas / numero_processos_paralelos;
+								const int numero_aberturas_excedente = numero_aberturas % numero_processos_paralelos;
+
+								const IdProcesso maior_processo_abertura_excedente = IdProcesso(numero_aberturas_excedente);
+
+								IdAbertura abertura_inicial = IdAbertura_Nenhum;
+								IdAbertura abertura_final = IdAbertura_Nenhum;
+
+								if (idProcesso <= maior_processo_abertura_excedente) {
+
+									abertura_inicial = IdAbertura(numero_aberturas_por_processo * int(idProcesso - 1) + int(idProcesso - 1) + 1);
+									abertura_final = IdAbertura(numero_aberturas_por_processo * int(idProcesso) + int(idProcesso));
+
+								} // if (idProcesso <= maior_processo_abertura_excedente) {
+
+								else if ((idProcesso > maior_processo_abertura_excedente) && (numero_aberturas_por_processo > 0)) {
+
+									abertura_inicial = IdAbertura(numero_aberturas_por_processo * int(idProcesso - 1) + 1 + numero_aberturas_excedente);
+									abertura_final = IdAbertura(numero_aberturas_por_processo * int(idProcesso) + numero_aberturas_excedente);
+
+								} // else if ((idProcesso > maior_processo_abertura_excedente) && (numero_aberturas_por_processo > 0)) {
+
+								for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
+									if (idCenario == cenario_inicial)
+										vetorIteracao.att(idIteracao).setAberturasInicialFinalMapeamento(idProcesso, idCenario, idEstagio, abertura_inicial, abertura_final);
+									else
+										vetorIteracao.att(idIteracao).setAberturasInicialFinalMapeamento(idProcesso, idCenario, idEstagio, IdAbertura_Nenhum, IdAbertura_Nenhum);
+								}
+
+							} // 
+
+						} // else if (tipoProcessamentoParalelo == TipoProcessamentoParalelo_por_abertura) {
+
+					} // if (getSize1Matriz(idIteracao, idProcesso, AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio) > 0) {
+
+				} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+			} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+		} // for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+	} // try{
+
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::defineMapeamentoAberturas(): \n" + std::string(erro.what())); }
+
+} // void Dados::defineMapeamentoAberturas(){
+
+void Dados::defineCenariosOtimizacao(const IdIteracao a_iteracao_inicial, const IdIteracao a_iteracao_final) {
+
+	try {
+
+		int numero_maximo_iteracoes = getAtributo(AttComumDados_numero_maximo_iteracoes, int());
+
+		const IdIteracao iteracao_final = IdIteracao(numero_maximo_iteracoes + 1);
+
+		if (numero_maximo_iteracoes == 0)
+			numero_maximo_iteracoes = 1;
+
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+		const int numero_processos_paralelos = getAtributo(AttComumDados_numero_processos_paralelos, int());
+
+		const int numero_cenarios_otimizacao = getAtributo(AttComumDados_numero_cenarios, int());
+
+		const int numero_cenarios_por_processo_otimizacao = numero_cenarios_otimizacao / numero_processos_paralelos;
+		const int numero_cenarios_por_iteracao_por_processo_otimizacao = numero_cenarios_por_processo_otimizacao / numero_maximo_iteracoes;
+
+		if (numero_cenarios_por_iteracao_por_processo_otimizacao == 0 && !(getAtributo(AttComumDados_visitar_todos_cenarios_por_iteracao, bool())))
+			throw std::invalid_argument("O numero_maximo_iteracoes deve ser menor do que o numero_cenarios_por_processo_otimizacao");
+
+		const int numero_cenarios_folga = numero_cenarios_otimizacao - (numero_cenarios_por_processo_otimizacao * numero_processos_paralelos);
+
+		const IdProcesso maior_processo_com_cenario_folga = IdProcesso(numero_cenarios_folga);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//Filosofia: Os cen�rios "folga" s�o distribuidos nos processos come�ando do processo mestre. Com esta reparti��o, o n�mero m�ximo de cen�rios folga por processo � 1
+
+		SmartEnupla<IdProcesso, SmartEnupla<IdIteracao, IdCenario>> mapeamento_cenario_inicial_por_iteracao_por_processo(IdProcesso_mestre, std::vector<SmartEnupla<IdIteracao, IdCenario>>(numero_processos_paralelos, SmartEnupla<IdIteracao, IdCenario>(a_iteracao_inicial, std::vector<IdCenario>(int(a_iteracao_final - a_iteracao_inicial) + 1, IdCenario_Nenhum))));
+		SmartEnupla<IdProcesso, SmartEnupla<IdIteracao, IdCenario>>   mapeamento_cenario_final_por_iteracao_por_processo(IdProcesso_mestre, std::vector<SmartEnupla<IdIteracao, IdCenario>>(numero_processos_paralelos, SmartEnupla<IdIteracao, IdCenario>(a_iteracao_inicial, std::vector<IdCenario>(int(a_iteracao_final - a_iteracao_inicial) + 1, IdCenario_Nenhum))));
+
+		const bool mapear_processos_com_um_unico_cenario = getAtributo(AttComumDados_mapear_processos_com_um_unico_cenario, bool());
+
+		for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+			IdCenario menor_cenario_do_processo_otimizacao = IdCenario_Nenhum;
+			IdCenario maior_cenario_do_processo_otimizacao = IdCenario_Nenhum;
+
+			if (idProcesso <= maior_processo_com_cenario_folga) {//Processos com cen�rio folga
+
+				menor_cenario_do_processo_otimizacao = IdCenario(numero_cenarios_por_processo_otimizacao * int(idProcesso - 1) + int(idProcesso - 1) + 1); //+ int(idProcesso - 1) � o cen�rio folga dos Processos anteriores			
+				maior_cenario_do_processo_otimizacao = IdCenario(numero_cenarios_por_processo_otimizacao * int(idProcesso) + int(idProcesso)); //+int(idProcesso) s�o os cen�rio folga
+
+			}//if (idProcesso <= maior_processo_com_cenario_folga) {
+
+			else if ((idProcesso > maior_processo_com_cenario_folga) && (numero_cenarios_por_processo_otimizacao > 0)) {////Processos sem cen�rio folga
+
+				menor_cenario_do_processo_otimizacao = IdCenario(numero_cenarios_por_processo_otimizacao * int(idProcesso - 1) + 1 + numero_cenarios_folga);
+				maior_cenario_do_processo_otimizacao = IdCenario(numero_cenarios_por_processo_otimizacao * int(idProcesso) + numero_cenarios_folga);
+
+			}// // else if ((idProcesso > maior_processo_com_cenario_folga) && (numero_cenarios_por_processo_otimizacao > 0)) {
+
+			if (idProcesso == getAtributo(AttComumDados_idProcesso, IdProcesso())) {
+				setAtributo(AttComumDados_menor_cenario_do_processo, menor_cenario_do_processo_otimizacao);
+				setAtributo(AttComumDados_maior_cenario_do_processo, maior_cenario_do_processo_otimizacao);
+			}
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if (mapear_processos_com_um_unico_cenario) {
+
+				for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+					if (idIteracao > iteracao_final) {
+						mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = menor_cenario_do_processo_otimizacao;
+						mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = maior_cenario_do_processo_otimizacao;
+					}
+					else if (idProcesso == IdProcesso_mestre) {
+						mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario_1;
+						mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario_1;
+					}
+					else {
+						mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario_Nenhum;
+						mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario_Nenhum;
+					}
+
+				} // for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+			} // if (mapear_processos_com_um_unico_cenario) {
+
+			else if (!mapear_processos_com_um_unico_cenario) {
+
+				for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+					if ((idIteracao < IdIteracao_1) || (idIteracao > iteracao_final) || (getAtributo(AttComumDados_visitar_todos_cenarios_por_iteracao, bool()))) {
+
+						//Mapeamento CEN�RIOS "CONVENCIONAIS"
+
+						mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = menor_cenario_do_processo_otimizacao;
+						mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = maior_cenario_do_processo_otimizacao;
+
+					}//if ((idIteracao < IdIteracao_1) || (numero_cenarios_otimizacao == numero_cenarios_por_iteracao_otimizacao)) {
+					else {
+						mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario(menor_cenario_do_processo_otimizacao + numero_cenarios_por_iteracao_por_processo_otimizacao * int(idIteracao - 2));
+
+						if (idIteracao == iteracao_final) { //O IdProcesso com folga e na �ltima itera��o corresponde a um cen�rio "folga"
+
+							//Mapeamento CEN�RIOS "CONVENCIONAIS"
+
+							mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = maior_cenario_do_processo_otimizacao;
+
+						}//if (idIteracao == iteracao_final && idProcesso <= maior_processo_com_cenario_folga) {
+
+						else
+							mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao) = IdCenario(menor_cenario_do_processo_otimizacao + numero_cenarios_por_iteracao_por_processo_otimizacao * int(idIteracao - 1) - 1);
+
+					}//else {
+
+				} // for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+			} // else if (!mapear_processos_com_um_unico_cenario) {
+
+		} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
+		const IdEstagio   estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
+
+		for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+			if (!vetorIteracao.isInstanciado(idIteracao)) {
+				Iteracao iteracao;
+				iteracao.setAtributo(AttComumIteracao_idIteracao, idIteracao);
+				vetorIteracao.add(iteracao);
+			} // if (!vetorIteracao.isInstanciado(idIteracao)) {
+
+			vetorIteracao.att(idIteracao).setVetor_forced(AttVetorIteracao_tipo_processamento_paralelo, SmartEnupla<IdEstagio, TipoProcessamentoParalelo>(estagio_inicial, std::vector<TipoProcessamentoParalelo>(int(estagio_final - estagio_inicial) + 1, TipoProcessamentoParalelo_por_cenario)));
+
+			for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+				if (!vetorIteracao.att(idIteracao).vetorProcesso.isInstanciado(idProcesso)) {
+					if (mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) != IdCenario_Nenhum) {
+						Processo processo;
+						processo.setAtributo(AttComumProcesso_idProcesso, idProcesso);
+						for (IdCenario idCenario = mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao); idCenario <= mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao); idCenario++) {
+							for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+								processo.addElemento(AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura_Nenhum);
+								processo.addElemento(AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura_Nenhum);
+							} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+						} // for (IdCenario idCenario = mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao); idCenario <= mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(idIteracao); idCenario++) {
+						vetorIteracao.att(idIteracao).vetorProcesso.add(processo);
+					} // if (mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao) != IdCenario_Nenhum) {
+				} // if (!vetorIteracao.att(idIteracao).vetorProcesso.isInstanciado(idProcesso)) {
+			} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+		} // for (IdIteracao idIteracao = a_iteracao_inicial; idIteracao <= a_iteracao_final; idIteracao++) {
+
+	} // try{
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::defineCenariosOtimizacao(): \n" + std::string(erro.what())); }
+
+} // void Dados::defineCenariosOtimizacao() {
+
+void Dados::defineCenariosSimulacao() {
+
+	try {
+
+		const IdProcesso maior_processo = getAtributo(AttComumDados_maior_processo, IdProcesso());
+		const int numero_processos_paralelos = getAtributo(AttComumDados_numero_processos_paralelos, int());
+
+		const TipoGeracaoCenario tipo_geracao_cenarios = getAtributo(AttComumDados_tipo_geracao_cenario_hidrologico, TipoGeracaoCenario());
+
+		const int numero_estagios = int(getAtributo(AttComumDados_estagio_final, IdEstagio()));
+
+		int numero_cenarios = getAtributo(AttComumDados_numero_cenarios, int());
+
+		// Quando a simula��o � historico_serie_unica, a mesma s�rie hist�rica � simulada em todos os processos (por facilidade de implementa��o). 
+		if (tipo_geracao_cenarios == TipoGeracaoCenario_historico_serie_unica) {
+
+			const int ordem_maxima = getAtributo(AttComumDados_ordem_maxima_auto_correlacao_geracao_cenario_hidrologico, int());
+
+			numero_cenarios = 1;
+
+			setAtributo(AttComumDados_numero_cenarios, numero_cenarios);
+
+			const Periodo periodo_historico = getAtributo(AttComumDados_periodo_historico_geracao_cenario_hidrologico, Periodo());
+
+			const Periodo periodo_inicial_historico = getIteradorInicial(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
+			const Periodo periodo_final_historico = getIteradorFinal(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico, Periodo());
+
+			if (periodo_historico.getTipoPeriodo() != periodo_inicial_historico.getTipoPeriodo())
+				throw std::invalid_argument("O tipo de periodo inicial da serie historica - " + getString(periodo_historico.getTipoPeriodo()) + " - a ser simulada nao eh compativel com o tipo de periodo do historico - " + getString(periodo_inicial_historico.getTipoPeriodo()) + ".");
+
+			else if ((periodo_historico < periodo_inicial_historico) || (periodo_historico > periodo_final_historico))
+				throw std::invalid_argument("O periodo inicial da serie historica - " + periodo_historico.str() + " - a ser simulada deve ser compreendido pelo historico.");
+
+			else if (periodo_historico + numero_estagios > periodo_final_historico)
+				throw std::invalid_argument("O periodo final da serie historica - " + (periodo_historico + numero_estagios).str() + " - a ser simulada deve ser compreendido pelo historico.");
+
+			else if (periodo_historico - ordem_maxima < periodo_inicial_historico)
+				throw std::invalid_argument("O periodo anterior da serie historica - " + (periodo_historico - ordem_maxima).str() + " - a ser simulada deve ser compreendido pelo historico.");
+
+			if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre)
+				std::cout << std::endl << "Simulacao a ser realizada com serie historica de " + periodo_historico.str() + "." << std::endl;
+
+		} // if (tipo_geracao_cenarios == TipoGeracaoCenario_historico_serie_unica) {
+
+		// Quando a simula��o � historico, o n�mero de s�ries hist�ricas a ser simulado � multiplo do n�mero de processadores.
+		else if (tipo_geracao_cenarios == TipoGeracaoCenario_historico) {
+
+			const int numero_anos_historico = getSizeVetor(IdHidreletrica_1, IdAfluencia_vazao_afluente, AttVetorAfluencia_natural_historico) / 12;
+
+			numero_cenarios = numero_anos_historico - 1 - int(numero_estagios / 12); // Desconta Ano inicial + Anos Finais em que o Horizonte ultrapassa Hist�rico.
+
+			setAtributo(AttComumDados_numero_cenarios, numero_cenarios);
+
+			if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre)
+				std::cout << std::endl << "Simulacao a ser realizada com " << numero_cenarios << " cenario(s) historico(s)." << std::endl;
+
+		} // else if (tipo_geracao_cenarios == TipoGeracaoCenario_historico) {
+
+		const int numero_cenarios_por_processo = numero_cenarios / numero_processos_paralelos;
+
+		const int numero_cenarios_folga = numero_cenarios - (numero_cenarios_por_processo * numero_processos_paralelos);
+
+		const IdProcesso maior_processo_com_cenario_folga = IdProcesso(numero_cenarios_folga);
+
+		SmartEnupla<IdProcesso, SmartEnupla<IdIteracao, IdCenario>> mapeamento_cenario_inicial_por_iteracao_por_processo(IdProcesso_mestre, std::vector<SmartEnupla<IdIteracao, IdCenario>>(numero_processos_paralelos, SmartEnupla<IdIteracao, IdCenario>(IdIteracao_0, std::vector<IdCenario>(1, IdCenario_Nenhum))));
+		SmartEnupla<IdProcesso, SmartEnupla<IdIteracao, IdCenario>>   mapeamento_cenario_final_por_iteracao_por_processo(IdProcesso_mestre, std::vector<SmartEnupla<IdIteracao, IdCenario>>(numero_processos_paralelos, SmartEnupla<IdIteracao, IdCenario>(IdIteracao_0, std::vector<IdCenario>(1, IdCenario_Nenhum))));
+
+		for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+			//Filosofia: Os cen�rios "folga" s�o distribuidos nos processos come�ando do processo mestre. Com esta reparti��o, o n�mero m�ximo de cen�rios folga por processo � 1
+
+			IdCenario menor_cenario_do_processo = IdCenario_Nenhum;
+			IdCenario maior_cenario_do_processo = IdCenario_Nenhum;
+
+			if (idProcesso <= maior_processo_com_cenario_folga) {//Processos com cen�rio folga
+
+				menor_cenario_do_processo = IdCenario(numero_cenarios_por_processo * int(idProcesso - 1) + int(idProcesso - 1) + 1); //+ int(idProcesso - 1) � o cen�rio folga dos Processos anteriores			
+				maior_cenario_do_processo = IdCenario(numero_cenarios_por_processo * int(idProcesso) + int(idProcesso)); //+int(idProcesso) s�o os cen�rio folga
+
+			}//if (idProcesso <= maior_processo_com_cenario_folga) {
+
+			else if ((idProcesso > maior_processo_com_cenario_folga) && (numero_cenarios_por_processo > 0)) {
+
+				menor_cenario_do_processo = IdCenario(numero_cenarios_por_processo * int(idProcesso - 1) + 1 + numero_cenarios_folga);
+				maior_cenario_do_processo = IdCenario(numero_cenarios_por_processo * int(idProcesso) + numero_cenarios_folga);
+
+			}//else {
+
+			if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == idProcesso) {
+				setAtributo(AttComumDados_menor_cenario_do_processo, menor_cenario_do_processo);
+				setAtributo(AttComumDados_maior_cenario_do_processo, maior_cenario_do_processo);
+			} // if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == idProcesso) {
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+
+				//Mapeamento CEN�RIOS "CONVENCIONAIS"
+
+			mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(IdIteracao_0) = IdCenario(menor_cenario_do_processo);
+			mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(IdIteracao_0) = IdCenario(maior_cenario_do_processo);
+
+		} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+		if (!vetorIteracao.isInstanciado(IdIteracao_0)) {
+			Iteracao iteracao;
+			iteracao.setAtributo(AttComumIteracao_idIteracao, IdIteracao_0);
+			vetorIteracao.add(iteracao);
+		} // if (!vetorIteracao.isInstanciado(idIteracao)) {
+
+		const IdEstagio estagio_inicial = getAtributo(AttComumDados_estagio_inicial, IdEstagio());
+		const IdEstagio   estagio_final = getAtributo(AttComumDados_estagio_final, IdEstagio());
+
+		vetorIteracao.att(IdIteracao_0).setVetor_forced(AttVetorIteracao_tipo_processamento_paralelo, SmartEnupla<IdEstagio, TipoProcessamentoParalelo>(estagio_inicial, std::vector<TipoProcessamentoParalelo>(int(estagio_final - estagio_inicial) + 1, TipoProcessamentoParalelo_por_cenario)));
+
+		for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+			if (!vetorIteracao.att(IdIteracao_0).vetorProcesso.isInstanciado(idProcesso)) {
+				Processo processo;
+				processo.setAtributo(AttComumProcesso_idProcesso, idProcesso);
+
+				for (IdCenario idCenario = mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(IdIteracao_0); idCenario <= mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(IdIteracao_0); idCenario++) {
+					for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+						processo.addElemento(AttMatrizProcesso_mapeamento_abertura_inicial_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura_Nenhum);
+						processo.addElemento(AttMatrizProcesso_mapeamento_abertura_final_por_cenario_por_estagio, idCenario, idEstagio, IdAbertura_Nenhum);
+					} // for (IdEstagio idEstagio = estagio_inicial; idEstagio <= estagio_final; idEstagio++) {
+				} // for (IdCenario idCenario = mapeamento_cenario_inicial_por_iteracao_por_processo.at(idProcesso).at(idIteracao); idCenario <= mapeamento_cenario_final_por_iteracao_por_processo.at(idProcesso).at(IdIteracao_0); idCenario++) {
+				vetorIteracao.att(IdIteracao_0).vetorProcesso.add(processo);
+			} // if (!vetorIteracao.att(idIteracao).vetorProcesso.isInstanciado(idProcesso)) {
+		} // for (IdProcesso idProcesso = IdProcesso_mestre; idProcesso <= maior_processo; idProcesso++) {
+
+	} // try{
+
+	catch (const std::exception& erro) { throw std::invalid_argument("Dados::defineCenariosSimulacao(): \n" + std::string(erro.what())); }
+
+} // void Dados::defineCenariosSimulacao() {
+
+
+
+
 
 void Dados::validacao_operacional_RestricaoOperativaUHE(EntradaSaidaDados a_entradaSaidaDados, const std::string a_diretorio_att_operacional, const std::string a_diretorio_att_premissa, const bool a_imprimir_atributos_sem_recarregar) {
 
 	try {
 
-		const IdProcesso idProcesso = arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso());
+		const IdProcesso idProcesso = getAtributo(AttComumDados_idProcesso, IdProcesso());
 
 		bool calcular_att_operacionais_restricao_operativa_UHE = false;
 		bool calcular_att_operacionais_elemento_sistema = false;
@@ -10960,10 +11479,6 @@ void Dados::validacao_operacional_RestricaoOperativaUHE(EntradaSaidaDados a_entr
 				} // for (Periodo periodo = horizonte_estudo.getIteradorInicial(); periodo <= horizonte_estudo.getIteradorFinal(); horizonte_estudo.incrementarIterador(periodo)) {
 
 			} // if ((getSize1Matriz(idRestricaoOperativaUHE, AttMatrizRestricaoOperativaUHE_limite_inferior) == 0) || (getSize1Matriz(idRestricaoOperativaUHE, AttMatrizRestricaoOperativaUHE_limite_superior) == 0)) {
-
-			if (getSizeVetor(idRestricaoOperativaUHE, AttVetorRestricaoOperativaUHE_limite_superior_folga_inferior) == 0) {
-				vetorRestricaoOperativaUHE.att(idRestricaoOperativaUHE).setVetor(AttVetorRestricaoOperativaUHE_limite_superior_folga_inferior, SmartEnupla<Periodo, double>(horizonte_estudo, getAtributo(idRestricaoOperativaUHE, AttComumRestricaoOperativaUHE_limite_superior_folga_inferior, double())));
-			}//if (getSizeVetor(AttVetorRestricaoOperativaUHE_limite_superior_folga_inferior) == 0) {
 
 			const IdElementoSistema maiorIdElementoSistema = getMaiorId(idRestricaoOperativaUHE, IdElementoSistema());
 
@@ -11125,15 +11640,6 @@ void Dados::validacao_operacional_RestricaoOperativaUHE(EntradaSaidaDados a_entr
 					a_entradaSaidaDados.setAppendArquivo(true);
 					a_entradaSaidaDados.imprimirArquivoCSV_AttMatriz("RESTRICAO_OPERATIVA_UHE_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", idRestricaoOperativaUHE, *this, periodo_estudo_inicial, periodo_final_estudo, IdPatamarCarga_1, maiorIdPatamarCarga_horizonte, AttMatrizRestricaoOperativaUHE_limite_superior);
 
-
-					if (idRestricaoOperativaUHE == IdRestricaoOperativaUHE_1)
-						a_entradaSaidaDados.setAppendArquivo(false);
-					else
-						a_entradaSaidaDados.setAppendArquivo(true);
-
-					a_entradaSaidaDados.imprimirArquivoCSV_AttVetor("RESTRICAO_OPERATIVA_UHE_AttVetorOperacional_PorPeriodo.csv", idRestricaoOperativaUHE, *this, periodo_estudo_inicial, periodo_final_estudo, AttVetorRestricaoOperativaUHE_limite_superior_folga_inferior);
-
-
 					if (idRestricaoOperativaUHE == IdRestricaoOperativaUHE_1)
 						a_entradaSaidaDados.setAppendArquivo(false);
 					else
@@ -11157,8 +11663,8 @@ void Dados::validacao_operacional_RestricaoOperativaUHE(EntradaSaidaDados a_entr
 				if (true) {
 					int barreira = 0;
 
-					if (arranjoResolucao.getAtributo(AttComumArranjoResolucao_idProcesso, IdProcesso()) == IdProcesso_mestre) {
-						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= arranjoResolucao.getMaiorId(IdProcesso()); idProcesso++)
+					if (getAtributo(AttComumDados_idProcesso, IdProcesso()) == IdProcesso_mestre) {
+						for (IdProcesso idProcesso = IdProcesso_1; idProcesso <= getAtributo(AttComumDados_maior_processo, IdProcesso()); idProcesso++)
 							MPI_Send(&barreira, 1, MPI_INT, getRank(idProcesso), 0, MPI_COMM_WORLD);
 					}
 					else
@@ -11179,8 +11685,6 @@ void Dados::validacao_operacional_RestricaoOperativaUHE(EntradaSaidaDados a_entr
 				a_entradaSaidaDados.carregarArquivoCSV_AttComum("RESTRICAO_OPERATIVA_UHE_AttComumOperacional.csv", *this, TipoAcessoInstancia_membro);
 
 				a_entradaSaidaDados.carregarArquivoCSV_AttVetor("RESTRICAO_OPERATIVA_UHE_AttVetorOperacional_PorInteiro.csv", *this, TipoAcessoInstancia_membro);
-				
-				a_entradaSaidaDados.carregarArquivoCSV_AttVetor("RESTRICAO_OPERATIVA_UHE_AttVetorOperacional_PorPeriodo.csv", *this, TipoAcessoInstancia_membro);
 
 				a_entradaSaidaDados.carregarArquivoCSV_AttMatriz("RESTRICAO_OPERATIVA_UHE_AttMatrizOperacional_PorPeriodoPorIdPatamarCarga.csv", *this, TipoAcessoInstancia_membro);
 
@@ -11355,7 +11859,7 @@ void Dados::valida_preconfig_hidraulica(const SmartEnupla<IdHidreletrica, IdHidr
 
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			if (vetorHidreletrica.att(idHidreletrica).getAtributo(AttComumHidreletrica_jusante, IdHidreletrica()) != a_lista_jusante_hidreletrica.getElemento(idHidreletrica))
 				throw std::invalid_argument("Inconsistencia na preconfiguracao hidraulica - usina " + vetorHidreletrica.att(idHidreletrica).getAtributo(AttComumHidreletrica_nome, std::string()) + " deve ter como jusante " + vetorHidreletrica.att(a_lista_jusante_hidreletrica.getElemento(idHidreletrica)).getAtributo(AttComumHidreletrica_nome, std::string()));
@@ -11363,7 +11867,7 @@ void Dados::valida_preconfig_hidraulica(const SmartEnupla<IdHidreletrica, IdHidr
 			if (vetorHidreletrica.att(idHidreletrica).getAtributo(AttComumHidreletrica_jusante_desvio, IdHidreletrica()) != a_lista_jusante_desvio_hidreletrica.getElemento(idHidreletrica))
 				throw std::invalid_argument("Inconsistencia na preconfiguracao hidraulica - usina " + vetorHidreletrica.att(idHidreletrica).getAtributo(AttComumHidreletrica_nome, std::string()) + " deve ter como jusante_desvio " + vetorHidreletrica.att(a_lista_jusante_desvio_hidreletrica.getElemento(idHidreletrica)).getAtributo(AttComumHidreletrica_nome, std::string()));
 
-		}//for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		}//for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::valida_preconfig_hidraulica(): \n" + std::string(erro.what())); }
@@ -11377,7 +11881,7 @@ void Dados::instanciaCotaJusanteUsinaJusante() {
 		const SmartEnupla<Periodo, IdEstagio> horizonte_estudo = getVetor(AttVetorDados_horizonte_estudo, Periodo(), IdEstagio());
 		const IdHidreletrica maiorIdHidreletrica = getMaiorId(IdHidreletrica());
 
-		for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 			//AttVetorHidreletrica_cota_montante_usina_jusante
 			if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_cota_montante_usina_jusante) > 0) {
@@ -11420,74 +11924,12 @@ void Dados::instanciaCotaJusanteUsinaJusante() {
 				}//if (IdHidreletrica_Nenhum != idHidreletricaJusante) {
 			}//if (getSizeVetor(idHidreletrica, AttVetorHidreletrica_cota_montante_usina_jusante) > 0) {
 
-		}//for (IdHidreletrica idHidreletrica = getMenorId(IdHidreletrica()); idHidreletrica <= maiorIdHidreletrica; vetorHidreletrica.incr(idHidreletrica)) {
+		}//for (IdHidreletrica idHidreletrica = IdHidreletrica_1; idHidreletrica <= maiorIdHidreletrica; idHidreletrica++) {
 
 	} // try{
 	catch (const std::exception& erro) { throw std::invalid_argument("Dados::instanciaCotaJusanteUsinaJusante(): \n" + std::string(erro.what())); }
 
 }
 
-IdVariavelAleatoriaInterna Dados::getIdVariavelAleatoriaInternaFromIdVariavelAleatoriaIdHidreletrica(const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdHidreletrica a_hidreletrica) {
-
-	try {
-
-		for (IdVariavelAleatoriaInterna idVarInterna = IdVariavelAleatoriaInterna_1; idVarInterna <= getMaiorId(a_idProcessoEstocastico, a_idVariavelAleatoria, IdVariavelAleatoriaInterna()); idVarInterna++) {
-			if (getIdHidreletricaFromIdProcessoEstocasticoIdVariavelAleatoriaIdVariavelAleatoriaInterna(a_idProcessoEstocastico, a_idVariavelAleatoria, idVarInterna) == a_hidreletrica)
-				return idVarInterna;
-		}
-
-		throw std::invalid_argument("Hidreletrica nao encontrada.");
-
-	}
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados(" + getString(getIdObjeto()) + ")::getIdVariavelAleatoriaInternaFromIdVariavelAleatoriaIdHidreletrica(" + getFullString(a_idProcessoEstocastico) + "," + getFullString(a_idVariavelAleatoria) + "," + getFullString(a_hidreletrica) + "): \n" + std::string(erro.what())); }
-
-}
-
-IdHidreletrica Dados::getIdHidreletricaFromIdProcessoEstocasticoIdVariavelAleatoriaIdVariavelAleatoriaInterna(const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdVariavelAleatoriaInterna a_idVariavelAleatoriaInterna) {
-
-	try {
 
 
-		std::string valor = processoEstocastico_hidrologico.vetorVariavelAleatoria.att(a_idVariavelAleatoria).vetorVariavelAleatoriaInterna.att(a_idVariavelAleatoriaInterna).getAtributo(AttComumVariavelAleatoriaInterna_nome, std::string());
-
-		const size_t pos_ = valor.find("_");
-		if (pos_ != std::string::npos)
-			valor = valor.substr(pos_ + 1, valor.length());
-
-		const IdHidreletrica idHidreletrica = getIdHidreletricaFromChar(valor.c_str());
-		if (idHidreletrica == IdHidreletrica_Nenhum)
-			throw std::invalid_argument("Hidreletrica invalida em " + getFullString(a_idVariavelAleatoriaInterna));
-
-		return idHidreletrica;
-
-	}
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados(" + getString(getIdObjeto()) + ")::getIdHidreletricaFromIdProcessoEstocasticoIdVariavelAleatoriaIdVariavelAleatoriaInterna(" + getFullString(a_idProcessoEstocastico) + "," + getFullString(a_idVariavelAleatoria) + "," + getFullString(a_idVariavelAleatoriaInterna) + "): \n" + std::string(erro.what())); }
-
-}
-
-void Dados::getIdVariavelAleatoriaIdVariavelAleatoriaInternaFromIdHidreletrica(const IdProcessoEstocastico a_idProcessoEstocastico, IdVariavelAleatoria& a_idVariavelAleatoria, IdVariavelAleatoriaInterna& a_idVariavelAleatoriaInterna, const IdHidreletrica a_hidreletrica) {
-
-	try {
-
-		
-
-		for (IdVariavelAleatoria idVar = IdVariavelAleatoria_1; idVar <= processoEstocastico_hidrologico.getMaiorId(IdVariavelAleatoria()); idVar++) {
-
-			const IdVariavelAleatoriaInterna maiorIdVariavelAleatoriaInterna = processoEstocastico_hidrologico.getMaiorId(idVar, IdVariavelAleatoriaInterna());
-
-			for (IdVariavelAleatoriaInterna idVarInterna = IdVariavelAleatoriaInterna_1; idVarInterna <= maiorIdVariavelAleatoriaInterna; idVarInterna++) {
-				if (getIdHidreletricaFromIdProcessoEstocasticoIdVariavelAleatoriaIdVariavelAleatoriaInterna(a_idProcessoEstocastico, idVar, idVarInterna) == a_hidreletrica) {
-					a_idVariavelAleatoria = idVar;
-					a_idVariavelAleatoriaInterna = idVarInterna;
-					return;
-				}
-			}
-		}
-
-
-		throw std::invalid_argument("Hidreletrica nao encontrada.");
-
-	}
-	catch (const std::exception& erro) { throw std::invalid_argument("Dados(" + getString(getIdObjeto()) + ")::getIdProcessoEstocasticoIdVariavelAleatoriaIdVariavelAleatoriaInternaFromIdHidreletrica(" + getFullString(a_idProcessoEstocastico) + "," + getFullString(a_idVariavelAleatoria) + "," + getFullString(a_idVariavelAleatoriaInterna) + "," + getFullString(a_hidreletrica) + "): \n" + std::string(erro.what())); }
-
-}

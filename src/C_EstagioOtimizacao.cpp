@@ -92,7 +92,7 @@ IdVariavelEstado Estagio::addVariavelEstado(const TipoSubproblemaSolver a_TSS, c
 } // IdVariavelEstado Estagio::adicionarVariavelEstado(const string a_nome, const IdEstagio a_idEstagio, const int a_indice_variavel_decisao, const IdEstagio a_idEstagioDE, const int a_indice_variavel_decisaoDE){
 
 
-IdVariavelRealizacao Estagio::addVariavelRealizacao(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const Periodo a_periodo, const double a_fator) {
+IdVariavelRealizacao Estagio::addVariavelRealizacao(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const Periodo a_periodo) {
 
 	try {
 
@@ -136,37 +136,8 @@ IdVariavelRealizacao Estagio::addVariavelRealizacao(const TipoSubproblemaSolver 
 
 } // IdVariavelRealizacao Estagio::adicionarVariavelRealizacao(const string a_nome, const IdEstagio a_idEstagio, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria){
 
-IdRestricaoCenario Estagio::addRestricaoCenario(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idRestricao, const SmartEnupla<IdCenario, double>& a_rhs, const SmartEnupla<int, SmartEnupla<IdCenario, double>> &a_coeficiente) {
-	
-	try{
 
-		const IdRestricaoCenario maiorIdRestricaoCenario = getMaiorId(IdRestricaoCenario());
-
-		const IdRestricaoCenario idRestricaoCenario = IdRestricaoCenario(maiorIdRestricaoCenario + 1);
-
-		RestricaoCenario variavelRealizacao;
-		variavelRealizacao.setAtributo(AttComumRestricaoCenario_idRestricaoCenario, idRestricaoCenario);
-
-		vetorRestricaoCenario.add(variavelRealizacao);
-
-		vetorRestricaoCenario.att(idRestricaoCenario).setAtributo(AttComumRestricaoCenario_nome, a_nome);
-
-		vetorRestricaoCenario.att(idRestricaoCenario).setVetor_forced(AttVetorRestricaoCenario_idRestricao, SmartEnupla<TipoSubproblemaSolver, int>(TipoSubproblemaSolver(TipoSubproblemaSolver_Nenhum + 1), std::vector<int>(TipoSubproblemaSolver(TipoSubproblemaSolver_Excedente - 1), -1)));
-
-		vetorRestricaoCenario.att(idRestricaoCenario).setElemento(AttVetorRestricaoCenario_idRestricao, a_TSS, a_idRestricao);
-
-		vetorRestricaoCenario.att(idRestricaoCenario).setVetor_forced(AttVetorRestricaoCenario_rhs, a_rhs);
-		vetorRestricaoCenario.att(idRestricaoCenario).setMatriz_forced(AttMatrizRestricaoCenario_coeficiente, a_coeficiente);
-
-		return idRestricaoCenario;
-
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio(" + getString(getIdObjeto()) + ")::addVariavelRealizacao(" + getString(a_TSS) + "," + a_nome + "," + getString(a_idRestricao) + "): \n" + std::string(erro.what())); }
-
-}
-
-
-IdVariavelRealizacaoInterna Estagio::addVariavelRealizacaoInterna(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdVariavelAleatoriaInterna a_idVariavelAleatoriaInterna, const Periodo a_periodo, const double a_fator, const TipoValor a_tipo_valor, const double a_percentual_inicial, const double a_percentual_passo){
+IdVariavelRealizacaoInterna Estagio::addVariavelRealizacaoInterna(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdVariavelAleatoriaInterna a_idVariavelAleatoriaInterna, const Periodo a_periodo, const TipoValor a_tipo_valor, const double a_percentual_inicial, const double a_percentual_passo){
 
 	try {
 
@@ -221,34 +192,38 @@ IdVariavelRealizacaoInterna Estagio::addVariavelRealizacaoInterna(const TipoSubp
 
 
 
-void Estagio::addValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const IdCenario a_idCenario, const IdCenario a_menorIdCenario, const IdCenario a_maiorIdCenario, const double a_valor){
+void Estagio::addValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const bool a_resetar, const IdProcesso a_idProcesso, const IdProcesso a_maior_processo, const IdCenario a_idCenario, const double a_valor){
 	try {
 
-		if ((getSizeVetor(a_idVariavelEstado, AttVetorVariavelEstado_valor) == 0) && (a_menorIdCenario != IdCenario_Nenhum))
-			vetorVariavelEstado.att(a_idVariavelEstado).setVetor_forced(AttVetorVariavelEstado_valor, SmartEnupla<IdCenario, double>(a_menorIdCenario, std::vector<double>(int(a_maiorIdCenario - a_menorIdCenario) + 1, 0.0)));
+		if ((getSize1Matriz(a_idVariavelEstado, AttMatrizVariavelEstado_valor) == 0) || (a_resetar))
+			vetorVariavelEstado.att(a_idVariavelEstado).setMatriz_forced(AttMatrizVariavelEstado_valor, SmartEnupla<IdProcesso, SmartEnupla<IdCenario, double>>(IdProcesso_mestre, std::vector<SmartEnupla<IdCenario, double>>(int(a_maior_processo - IdProcesso_mestre) + 1, SmartEnupla<IdCenario, double>())));
 
-		vetorVariavelEstado.att(a_idVariavelEstado).setElemento(AttVetorVariavelEstado_valor, a_idCenario, a_valor);
-
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::addValorVariavelEstado(" + getFullString(a_idVariavelEstado) + "," + getFullString(a_idCenario) + "," + getFullString(a_menorIdCenario) + "," + getFullString(a_maiorIdCenario) + "," + getString(a_valor) + "): \n" + std::string(erro.what())); }
-
-} // void Estagio::adicionarValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const IdIteracao a_idIteracao, const IdCenario a_idCenario, const double a_valor){
-
-void Estagio::alocarVariaveisEstado(const IdCenario a_menorIdCenario, const IdCenario a_maiorIdCenario){
-
-	try {
-
-		for (IdVariavelEstado idVariavelEstado = IdVariavelEstado_1; idVariavelEstado <= getMaiorId(IdVariavelEstado()); idVariavelEstado++) {
-
-			if (vetorVariavelEstado.isInstanciado(idVariavelEstado)) {
-				vetorVariavelEstado.att(idVariavelEstado).setVetor_forced(AttVetorVariavelEstado_valor, SmartEnupla<IdCenario, double>(a_menorIdCenario, std::vector<double>(int(a_maiorIdCenario - a_menorIdCenario) + 1, 0.0)));
-			}
+		if (getSize2Matriz(a_idVariavelEstado, AttMatrizVariavelEstado_valor, a_idProcesso) == 0) {
+			vetorVariavelEstado.att(a_idVariavelEstado).addElemento(AttMatrizVariavelEstado_valor, a_idProcesso, a_idCenario, a_valor);
+			return;
 		}
 
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::alocarVariaveisEstado(" + getFullString(a_menorIdCenario) + "," + getFullString(a_maiorIdCenario) + "): \n" + std::string(erro.what())); }
+		if ((a_idCenario < IdCenario(getIterador2Inicial(a_idVariavelEstado, AttMatrizVariavelEstado_valor, a_idProcesso, IdCenario()))) || (a_idCenario > IdCenario(getIterador2Final(a_idVariavelEstado, AttMatrizVariavelEstado_valor, a_idProcesso, IdCenario()) + 1)))
+			vetorVariavelEstado.att(a_idVariavelEstado).setMatriz_forced(AttMatrizVariavelEstado_valor, SmartEnupla<IdProcesso, SmartEnupla<IdCenario, double>>(IdProcesso_mestre, std::vector<SmartEnupla<IdCenario, double>>(int(a_maior_processo - IdProcesso_mestre) + 1, SmartEnupla<IdCenario, double>())));
 
-}
+		const IdCenario cenario_inicial = getIterador2Inicial(a_idVariavelEstado, AttMatrizVariavelEstado_valor, a_idProcesso, IdCenario());
+		const IdCenario cenario_final = getIterador2Final(a_idVariavelEstado, AttMatrizVariavelEstado_valor, a_idProcesso, IdCenario());
+
+		if ((cenario_inicial <= a_idCenario) && (a_idCenario <= cenario_final)) {
+			vetorVariavelEstado.att(a_idVariavelEstado).setElemento(AttMatrizVariavelEstado_valor, a_idProcesso, a_idCenario, a_valor);
+			return;
+		}
+		else {
+			vetorVariavelEstado.att(a_idVariavelEstado).addElemento(AttMatrizVariavelEstado_valor, a_idProcesso, a_idCenario, a_valor);
+			return;
+		}
+
+		throw std::invalid_argument("Erro ao adicionar estado.");
+
+	} // try
+	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::addValorVariavelEstado(" + getFullString(a_idVariavelEstado) + "," + getFullString(a_idProcesso) + "," + getFullString(a_maior_processo) + "," + getFullString(a_idCenario) + "," + getString(a_valor) + "): \n" + std::string(erro.what())); }
+
+} // void Estagio::adicionarValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const IdIteracao a_idIteracao, const IdCenario a_idCenario, const double a_valor){
 
 
 std::vector<std::string> Estagio::getNomeVariavelEstado(const IdVariavelEstado a_idVariavelEstado){
@@ -374,6 +349,13 @@ void Estagio::resetarValorVariavelRealizacaoInterna(const TipoSubproblemaSolver 
 
 } // void Estagio::resetarValorVariavelRealizacaoInterna(const IdVariavelRealizacaoInterna idVariavelRealizacaoInterna){
 
+double* Estagio::getReferenciaValoresEstado(const IdVariavelEstado a_idVariavelEstado, const IdProcesso a_idProcesso, const IdCenario a_idCenario_inicial, const IdCenario a_idCenario_final){
+	try{
+		return vetorVariavelEstado.att(a_idVariavelEstado).getReferenciaElementosMatriz(AttMatrizVariavelEstado_valor, a_idProcesso, a_idCenario_inicial, a_idCenario_final, double());
+	} // try
+	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::getReferenciaValoresEstado(" + getFullString(a_idVariavelEstado) + "," + getFullString(a_idProcesso) + "," + getFullString(a_idCenario_inicial) + "," + getFullString(a_idCenario_final) + "): \n" + std::string(erro.what())); }
+} // double* Estagio::getReferenciaValoresEstado(const IdVariavelEstado a_idVariavelEstado, const IdProcesso a_idProcesso, const IdCenario a_idCenario_inicial, const IdCenario a_idCenario_final){
+
 void Estagio::selecaoSolucaoProxy(const int a_numero_aberturas_solucao_proxy){
 
 	try {
@@ -389,7 +371,7 @@ void Estagio::selecaoSolucaoProxy(const int a_numero_aberturas_solucao_proxy){
 
 		int espacamento_aberturas = numero_aberturas / a_numero_aberturas_solucao_proxy;
 
-		SmartEnupla<int, int> selecao_solucao_proxy(1, std::vector<int>(numero_aberturas, 0));
+		SmartEnupla<int, bool> selecao_solucao_proxy(1, std::vector<bool>(numero_aberturas, false));
 
 		int cont = 0;
 		for (int i = numero_aberturas; i >= 1; i--) {
@@ -398,7 +380,7 @@ void Estagio::selecaoSolucaoProxy(const int a_numero_aberturas_solucao_proxy){
 				break;
 
 			else if ((i == numero_aberturas) || (cont == espacamento_aberturas)){
-				selecao_solucao_proxy.setElemento(i , 1);
+				selecao_solucao_proxy.setElemento(i , true);
 				cont = 0;
 			}
 
@@ -518,8 +500,7 @@ void Estagio::instanciarCorteBenders(const SmartEnupla<IdRealizacao, double>& a_
 
 		vetorCorteBenders.att(idCorteBenders).setVetor_forced(AttVetorCorteBenders_rhs, a_rhs);
 
-		if (a_estado.size() > 0)
-			vetorCorteBenders.att(idCorteBenders).setVetor_forced(AttVetorCorteBenders_estado, a_estado);
+		vetorCorteBenders.att(idCorteBenders).setVetor_forced(AttVetorCorteBenders_estado, a_estado);
 
 		vetorCorteBenders.att(idCorteBenders).setMatriz_forced(AttMatrizCorteBenders_coeficiente, a_coeficiente);
 
@@ -576,26 +557,6 @@ void Estagio::anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariav
 	catch (const std::exception & erro) { throw std::invalid_argument("Estagio::anularVariavelEstadoCorteBenders(" + getFullString(a_idVariavelEstado) + "): \n" + std::string(erro.what())); }
 
 } // void Estagio::anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariavelEstado){
-
-void Estagio::anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariavelEstado, const IdCorteBenders a_idCorteBenders) {
-
-	try {
-
-			if (vetorCorteBenders.isInstanciado(a_idCorteBenders))
-				vetorCorteBenders.att(a_idCorteBenders).anularVariavelEstado(a_idVariavelEstado);
-
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::anularVariavelEstadoCorteBenders(" + getFullString(a_idVariavelEstado) +  "," + getFullString(a_idCorteBenders) + "): \n" + std::string(erro.what())); }
-
-} // void Estagio::anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariavelEstado){
-
-
-void Estagio::alocarCorteBenders(const int a_numero_objetos){
-	try{
-		vetorCorteBenders.alocar(a_numero_objetos);
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::anularVariavelEstadoCorteBenders(" + getFullString(a_numero_objetos) + "): \n" + std::string(erro.what())); }
-}
 
 
 void Estagio::selecionarCorteBenders(){
@@ -878,13 +839,10 @@ void Estagio::avaliarDominanciaCorteBendersParaEstado(const IdCorteBenders a_idC
 
 		const int nivel_dominancia = getAtributo(AttComumEstagio_selecao_cortes_nivel_dominancia, int());
 
-		if (nivel_dominancia == 0)
-			return;
-
 		SmartEnupla<IdRealizacao, SmartEnupla<int, double>>         custos_ordenados = vetorCorteBenders.att(a_idCorteBenders_com_estado).getMatriz(AttMatrizCorteBenders_custo_cortes_dominantes, IdRealizacao(), int(), double());
 		SmartEnupla<IdRealizacao, SmartEnupla<int, IdCorteBenders>> cortes_ordenados = vetorCorteBenders.att(a_idCorteBenders_com_estado).getMatriz(AttMatrizCorteBenders_ordenacao_cortes_dominantes, IdRealizacao(), int(), IdCorteBenders());
 
-		SmartEnupla<IdRealizacao, int> lista_is_corte_dominado_realizacao = vetorCorteBenders.att(a_idCorteBenders_com_estado).getVetor(AttVetorCorteBenders_is_corte_dominado, IdRealizacao(), int());
+		SmartEnupla<IdRealizacao, bool> lista_is_corte_dominado_realizacao = vetorCorteBenders.att(a_idCorteBenders_com_estado).getVetor(AttVetorCorteBenders_is_corte_dominado, IdRealizacao(), bool());
 
 		if (custos_ordenados.size() == 0)
 			custos_ordenados = SmartEnupla<IdRealizacao, SmartEnupla<int, double>>(IdRealizacao_1, std::vector<SmartEnupla<int, double>>(maiorIdRealizacao_corte, SmartEnupla<int, double>()));
@@ -893,9 +851,9 @@ void Estagio::avaliarDominanciaCorteBendersParaEstado(const IdCorteBenders a_idC
 			cortes_ordenados = SmartEnupla<IdRealizacao, SmartEnupla<int, IdCorteBenders>>(IdRealizacao_1, std::vector<SmartEnupla<int, IdCorteBenders>>(maiorIdRealizacao_corte, SmartEnupla<int, IdCorteBenders>()));
 
 		if (lista_is_corte_dominado_realizacao.size() == 0)
-			lista_is_corte_dominado_realizacao = SmartEnupla<IdRealizacao, int>(IdRealizacao_1, std::vector<int>(maiorIdRealizacao_corte, 0));
+			lista_is_corte_dominado_realizacao = SmartEnupla<IdRealizacao, bool>(IdRealizacao_1, std::vector<bool>(maiorIdRealizacao_corte, false));
 
-		int is_corte_dominado = 1;
+		bool is_corte_dominado = true;
 
 		for (IdRealizacao idRealizacao = menorIdRealizacao_corte_a_ser_avaliado; idRealizacao <= maiorIdRealizacao_corte_a_ser_avaliado; idRealizacao++) {
 
@@ -906,7 +864,7 @@ void Estagio::avaliarDominanciaCorteBendersParaEstado(const IdCorteBenders a_idC
 				if (cortes_ordenados.at(idRealizacao).size() < nivel_dominancia) {
 					custos_ordenados.at(idRealizacao).addElemento(custos_ordenados.at(idRealizacao).size() + 1, custo_corte);
 					cortes_ordenados.at(idRealizacao).addElemento(cortes_ordenados.at(idRealizacao).size() + 1, a_idCorteBenders_a_ser_avaliado);
-					is_corte_dominado = 0;
+					is_corte_dominado = false;
 				} // if (cortes_ordenados.at(idRealizacao).size() < nivel_dominancia) {
 
 				else {
@@ -933,7 +891,7 @@ void Estagio::avaliarDominanciaCorteBendersParaEstado(const IdCorteBenders a_idC
 
 							// Verifica se o corte com estado iá sair da dominânica
 							if (cortes_ordenados.at(idRealizacao).at(cortes_ordenados.at(idRealizacao).size()) == a_idCorteBenders_com_estado)
-								lista_is_corte_dominado_realizacao.setElemento(idRealizacao, 1);
+								lista_is_corte_dominado_realizacao.setElemento(idRealizacao, true);
 
 							break;
 
@@ -946,8 +904,8 @@ void Estagio::avaliarDominanciaCorteBendersParaEstado(const IdCorteBenders a_idC
 						cortes_ordenados.at(idRealizacao) = cortes_ordenados_temp;
 					} // if (custos_ordenados_temp.size() > 0) {
 
-					if (lista_is_corte_dominado_realizacao.getElemento(idRealizacao) != 1)
-						is_corte_dominado = 0;
+					if (!lista_is_corte_dominado_realizacao.getElemento(idRealizacao))
+						is_corte_dominado = false;
 
 					if (cortes_ordenados.at(idRealizacao).size() < nivel_dominancia)
 						throw std::invalid_argument("Nao foram selecionados cortes para o nivel de dominancia especificado: " + getString(nivel_dominancia));
@@ -1070,208 +1028,6 @@ void Estagio::exportarVersaoAlternativaCorteBenders(Estagio& a_estagio, const st
 } // void Estagio::exportarVersaoAlternativaCorteBenders(Estagio& a_estagio, const SmartEnupla<IdVariavelAleatoria, std::vector<std::string>>& a_lista_var){
 
 
-bool Estagio::carregarRHSCortesBenders(const std::string a_nomeArquivo){
-
-	try {
-
-		const int numCaract = 300000;
-		const int numLinhas = 950000;
-
-		const std::string fimDeArquivo = "";
-
-		std::ifstream leituraArquivo;
-
-		leituraArquivo.open(a_nomeArquivo.c_str(), std::ios_base::in);
-
-		if (!leituraArquivo.is_open())
-			return false;
-
-		char linhaChar[numCaract];
-
-		std::string   linha; // Linha de dados lida do arquivo.
-		std::string   valor; // Valor retirado da linha de dados do arquivo.
-
-		int lin; // Posição da linha da informação ao longo do arquivo de dados.
-		size_t pos; // Posição da coluna da informação ao longo da linha de dados.
-
-		std::vector<std::string> cabecalho;
-
-		// Leitura do Cabeçalho
-		leituraArquivo.getline(linhaChar, numCaract);
-		linha = linhaChar;
-
-		strNormalizada(linha);
-
-		pos = 0;
-		while (pos != std::string::npos) {
-
-			pos = linha.find(";");
-
-			valor = linha.substr(0, pos).c_str();
-
-			cabecalho.push_back(valor);
-
-			linha = linha.substr(pos + 1, linha.length());
-
-			if (linha == "")
-				break;
-
-		} // while (pos != string::npos) {
-
-		if (cabecalho.size() < 3)
-			throw std::invalid_argument("O cabecalho do arquivo deve possuir pelo menos 3 colunas.");
-
-		const IdRealizacao maiorIdRealizacao = IdRealizacao(cabecalho.size() - 2);
-
-		std::string membro = cabecalho.at(0);
-
-		if (membro.size() > 2) {
-			if (membro.substr(0, 2) == "id")
-				membro = membro.substr(2, membro.size() - 2);
-		} // if (membro.size() > 2) {
-
-
-		if (getMaiorId(IdCorteBenders()) == IdCorteBenders_Nenhum) {
-
-			int numero_cortes = 0;
-
-			// Leitura para alocação dos cortes
-			lin = 2;
-			while (lin < numLinhas) {
-
-				SmartEnupla<IdRealizacao, double> vetorValores(IdRealizacao_1, std::vector<double>(maiorIdRealizacao, NAN));
-
-				leituraArquivo.getline(linhaChar, numCaract);
-				linha = linhaChar;
-
-				strNormalizada(linha);
-
-				valor = linha;
-
-				pos = valor.find(";");
-
-				if (pos == std::string::npos) {
-					if (fimDeArquivo != "") {
-						if (!strCompara(valor, fimDeArquivo))
-							std::cout << "Aviso! Arquivo " + a_nomeArquivo + " nao finalizado com FIM" << std::endl;
-					} // if (fimDeArquivo != "") {
-					break;
-				} // if (pos != string::npos) {
-
-				valor = linha.substr(0, pos).c_str();
-
-				if (fimDeArquivo != "") {
-					if (strCompara(valor, fimDeArquivo))
-						break;
-				} // if (fimDeArquivo != "") {
-
-				numero_cortes++;
-
-				lin++;
-
-			} // while (lin < numLinhas) {
-			alocarCorteBenders(numero_cortes);
-
-			leituraArquivo.close();
-			leituraArquivo.clear();
-
-			leituraArquivo.open(a_nomeArquivo.c_str(), std::ios_base::in);
-
-			leituraArquivo.getline(linhaChar, numCaract);
-
-		} // 		if (getMaiorId(IdCorteBenders()) == IdCorteBenders_Nenhum) {
-
-		// Leitura dados do arquivo
-		lin = 2;
-		while (lin < numLinhas) {
-
-			SmartEnupla<IdRealizacao, double> vetorValores(IdRealizacao_1, std::vector<double>(maiorIdRealizacao, NAN));
-
-			leituraArquivo.getline(linhaChar, numCaract);
-			linha = linhaChar;
-
-			strNormalizada(linha);
-
-			valor = linha;
-
-			pos = valor.find(";");
-
-			if (pos == std::string::npos) {
-				if (fimDeArquivo != "") {
-					if (!strCompara(valor, fimDeArquivo))
-						std::cout << "Aviso! Arquivo " + a_nomeArquivo + " nao finalizado com FIM" << std::endl;
-				} // if (fimDeArquivo != "") {
-				break;
-			} // if (pos != string::npos) {
-
-			valor = linha.substr(0, pos).c_str();
-
-			if (fimDeArquivo != "") {
-				if (strCompara(valor, fimDeArquivo))
-					break;
-			} // if (fimDeArquivo != "") {
-
-			const IdCorteBenders idCorteBenders = getIdCorteBendersFromChar(valor.c_str());
-
-			if (getMaiorId(IdCorteBenders()) < idCorteBenders) {
-				CorteBenders corte;
-				corte.setAtributo(AttComumCorteBenders_idCorteBenders, idCorteBenders);
-				vetorCorteBenders.add(corte);
-			}
-
-			pos = linha.find(";");
-			linha = linha.substr(pos + 1, linha.length());
-
-			pos = linha.find(";");
-			valor = linha.substr(0, pos).c_str();
-
-			const std::string attVetor = valor;
-
-			if (attVetor != "rhs")
-				throw std::invalid_argument("Metodo exclusivo para leitura de rhs de Cortes de Benders.");
-
-			pos = linha.find(";");
-			linha = linha.substr(pos + 1, linha.length());
-
-			IdRealizacao idRealizacao = IdRealizacao_1;
-
-			pos = 0;
-			while (pos != std::string::npos) {
-
-				pos = linha.find(";");
-
-				valor = linha.substr(0, pos).c_str();
-
-				if (valor != "")
-					vetorValores.at(idRealizacao) = atof(valor.c_str());
-
-				linha = linha.substr(pos + 1, linha.length());
-
-				if (linha == "")
-					break;
-
-				idRealizacao++;
-
-			} // while (pos != string::npos) {		
-
-			vetorCorteBenders.att(idCorteBenders).setVetor_forced(AttVetorCorteBenders_rhs, vetorValores);
-
-			lin++;
-
-		} // while (lin < numLinhas) {
-
-		leituraArquivo.close();
-		leituraArquivo.clear();
-
-		return true;
-
-	} // try
-
-	catch (const std::ifstream::failure& erro) { throw std::invalid_argument("Estagio::carregarRHSCortesBenders(" + a_nomeArquivo + ",a_objetoDados): \nErro de Integridade do Arquivo." + std::string(erro.what())); }
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::carregarRHSCortesBenders(" + a_nomeArquivo + ",a_objetoDados): \n" + std::string(erro.what())); }
-
-}
-
 bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo){
 
 	try {
@@ -1323,13 +1079,6 @@ bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo)
 		if (cabecalho.size() < 4)
 			throw std::invalid_argument("O cabecalho do arquivo deve possuir pelo menos 4 colunas.");
 
-		const IdVariavelEstado maiorIdVariavelEstado = IdVariavelEstado(cabecalho.size() - 3);
-
-		const IdRealizacao maiorIdRealizacao = getIteradorFinal(getMenorId(IdCorteBenders()), AttVetorCorteBenders_rhs, IdRealizacao());
-
-		const SmartEnupla<IdRealizacao, SmartEnupla<IdVariavelEstado, double>> enupla_inicializacao(IdRealizacao_1, std::vector<SmartEnupla<IdVariavelEstado, double>>(maiorIdRealizacao, SmartEnupla<IdVariavelEstado, double>(\
-			IdVariavelEstado_1, std::vector <double>(maiorIdVariavelEstado, NAN))));
-
 		std::string membro = cabecalho.at(0);
 
 		if (membro.size() > 2) {
@@ -1340,6 +1089,8 @@ bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo)
 		// Leitura dados do arquivo
 		lin = 2;
 		while (lin < numLinhas) {
+
+			std::vector<double> vetorValores;
 
 			leituraArquivo.getline(linhaChar, numCaract);
 			linha = linhaChar;
@@ -1367,9 +1118,6 @@ bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo)
 
 			const IdCorteBenders idCorteBenders = getIdCorteBendersFromChar(valor.c_str());
 
-			if (getSize1Matriz(idCorteBenders, AttMatrizCorteBenders_coeficiente) == 0)
-				vetorCorteBenders.att(idCorteBenders).setMatriz_forced(AttMatrizCorteBenders_coeficiente, enupla_inicializacao);
-
 			pos = linha.find(";");
 			linha = linha.substr(pos + 1, linha.length());
 
@@ -1392,8 +1140,6 @@ bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo)
 			pos = linha.find(";");
 			linha = linha.substr(pos + 1, linha.length());
 
-			IdVariavelEstado idVariavelEstado = IdVariavelEstado_1;
-
 			pos = 0;
 			while (pos != std::string::npos) {
 
@@ -1402,17 +1148,18 @@ bool Estagio::carregarCoeficientesCortesBenders(const std::string a_nomeArquivo)
 				valor = linha.substr(0, pos).c_str();
 
 				if (valor != "")
-					vetorCorteBenders.att(idCorteBenders).setElemento(AttMatrizCorteBenders_coeficiente, idRealizacao, idVariavelEstado, atof(valor.c_str()));
+					vetorValores.push_back(atof(valor.c_str()));
 
 				linha = linha.substr(pos + 1, linha.length());
 
 				if (linha == "")
 					break;
 
-				idVariavelEstado++;
-
 			} // while (pos != string::npos) {		
 			
+			for (int i = 0; i < int(vetorValores.size()); i++)
+				vetorCorteBenders.att(idCorteBenders).addElemento(AttMatrizCorteBenders_coeficiente, idRealizacao, IdVariavelEstado(i + 1), vetorValores.at(i));
+
 			lin++;
 
 		} // while (lin < numLinhas) {
@@ -1569,17 +1316,6 @@ bool Estagio::carregarEstadosCortesBenders(const std::string a_nomeArquivo){
 	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::carregarEstadosCortesBenders(" + a_nomeArquivo + "): \n" + std::string(erro.what())); }
 
 } // void Estagio::carregarEstadosCortesBenders(const std::string a_nome_arquivo){
-
-void Estagio::removerTodosCorteBenders(){
-
-	try{
-
-		vetorCorteBenders = VetorCorteBendersEmEstagio();
-
-	} // try
-	catch (const std::exception& erro) { throw std::invalid_argument("Estagio::removerTodosCorteBenders(): \n" + std::string(erro.what())); }
-
-}
 
 
 

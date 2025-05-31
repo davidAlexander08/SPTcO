@@ -7,7 +7,6 @@
 
 #include "C_VariavelEstado.h"
 #include "C_VariavelRealizacao.h"
-#include "C_RestricaoCenario.h"
 #include "C_VariavelRealizacaoInterna.h"
 #include "C_CorteBenders.h"
 
@@ -15,17 +14,15 @@
 	  m(Estagio,  AttComum,                       idEstagio,    IdEstagio,         min,          max,           min,      sim) \
 	  m(Estagio,  AttComum,                     tipo_solver,   TipoSolver,         min,          max,           min,      nao) \
 	  m(Estagio,  AttComum,              periodo_otimizacao,      Periodo,         min,          max,           min,      sim) \
-	  m(Estagio,  AttComum,                     lambda_CVAR,       double,           0,            1,             0,      sim) \
-	  m(Estagio,  AttComum,                      alpha_CVAR,       double,           0,            1,             0,      sim) \
 	  m(Estagio,  AttComum,               maiorIdRealizacao, IdRealizacao,         min,          max,           min,      nao) \
-	  m(Estagio,  AttComum,                cortes_multiplos,          int,           0,          max,             0,      sim) \
-	  m(Estagio,  AttComum, selecao_cortes_nivel_dominancia,          int,           0,           10,             1,      sim) 
+	  m(Estagio,  AttComum,                cortes_multiplos,          int,           0,          max,             0,      nao) \
+	  m(Estagio,  AttComum, selecao_cortes_nivel_dominancia,          int,           0,           10,             1,      nao) 
 
 //     c_classe,   smrtAtt,                           nomeAtributo,                      tipo,  lowerBound,   upperBound,  initialValue, mustRead?
 
 #define ATT_VETOR_ESTAGIO_OTIMIZACAO(m)  \
 	  m(Estagio,  AttVetor, request_cortes_selecionados,                int,       0,         1,        0,  IdRealizacao)   \
-	  m(Estagio,  AttVetor,       selecao_solucao_proxy,               int,       0,         1,        0,  int) 
+	  m(Estagio,  AttVetor,       selecao_solucao_proxy,               bool,     min,       max,      max,  int) 
 
 #define ATT_MATRIZ_ESTAGIO_OTIMIZACAO(m)  \
 	  m(Estagio,  AttMatriz,   acao_cortes_selecionados,               int,      -1,      max,        0,  IdRealizacao, int) \
@@ -35,7 +32,6 @@
 #define MEMBRO_ESTAGIO_OTIMIZACAO(m)  \
 	m(Estagio, CorteBenders) \
 	m(Estagio, VariavelEstado) \
-	m(Estagio, RestricaoCenario) \
 	m(Estagio, VariavelRealizacao) \
 	m(Estagio, VariavelRealizacaoInterna) 
 
@@ -62,12 +58,10 @@ public:
 	DECLARA_SMART_ELEMENTO(Estagio, SMART_ELEMENTO_ESTAGIO_OTIMIZACAO)
 
 	IdVariavelEstado            addVariavelEstado           (const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const int a_idVariavelDecisaoEstagioAnterior);
-	IdVariavelRealizacao        addVariavelRealizacao       (const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const Periodo a_periodo, const double a_fator);
-	IdRestricaoCenario         addRestricaoCenario        (const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idRestricao, const SmartEnupla<IdCenario, double>& a_rhs, const SmartEnupla<int, SmartEnupla<IdCenario, double>> &a_coeficiente);
-	IdVariavelRealizacaoInterna addVariavelRealizacaoInterna(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdVariavelAleatoriaInterna a_idVariavelAleatoriaInterna, const Periodo a_periodo, const double a_fator, const TipoValor a_tipo_valor, const double percentual_inicial, const double percentual_passo);
+	IdVariavelRealizacao        addVariavelRealizacao       (const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const Periodo a_periodo);
+	IdVariavelRealizacaoInterna addVariavelRealizacaoInterna(const TipoSubproblemaSolver a_TSS, const string a_nome, const int a_idVariavelDecisao, const IdProcessoEstocastico a_idProcessoEstocastico, const IdVariavelAleatoria a_idVariavelAleatoria, const IdVariavelAleatoriaInterna a_idVariavelAleatoriaInterna, const Periodo a_periodo, const TipoValor a_tipo_valor, const double percentual_inicial, const double percentual_passo);
 
-	void addValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const IdCenario a_idCenario, const IdCenario a_menorIdCenario, const IdCenario a_maiorIdCenario, const double a_valor);
-	void alocarVariaveisEstado(const IdCenario a_menorIdCenario, const IdCenario a_maiorIdCenario);
+	void addValorVariavelEstado(const IdVariavelEstado a_idVariavelEstado, const bool a_resetar, const IdProcesso a_idProcesso, const IdProcesso a_maior_processo, const IdCenario a_idCenario, const double a_valor);
 
 	std::vector<std::string> getNomeVariavelEstado(const IdVariavelEstado a_idVariavelEstado);
 
@@ -76,6 +70,8 @@ public:
 
 	double calcularValorVariavelRealizacaoInterna(const IdVariavelRealizacaoInterna idVariavelRealizacaoInterna, const double a_valor);
 	void resetarValorVariavelRealizacaoInterna(const TipoSubproblemaSolver a_tipoSubproblemaSolver, const IdVariavelRealizacaoInterna idVariavelRealizacaoInterna);
+
+	double* getReferenciaValoresEstado(const IdVariavelEstado a_idVariavelEstado, const IdProcesso a_idProcesso, const IdCenario a_idCenario_inicial, const IdCenario a_idCenario_final);
 
 	void selecaoSolucaoProxy(const int a_numero_aberturas_solucao_proxy);
 
@@ -89,10 +85,6 @@ public:
 	void requestCorteBendersFinalizado(const IdRealizacao a_idRealizacao);
 
 	void anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariavelEstado);
-
-	void anularVariavelEstadoCorteBenders(const IdVariavelEstado a_idVariavelEstado, const IdCorteBenders a_idCorteBenders);
-
-	void alocarCorteBenders(const int a_numero_objetos);
 
 	void instanciarSolver(const TipoSubproblemaSolver a_tipoSubproblemaSolver, TipoSolver &a_tipoSolver);
 
@@ -116,11 +108,8 @@ public:
 
 	void exportarVersaoAlternativaCorteBenders(Estagio &a_estagio, const std::string a_idProcessoEstocasticoNovo, const std::string a_idProcessoEstocasticoNovo_compacto, const SmartEnupla<IdVariavelAleatoria, std::vector<std::string>> &a_lista_nome_compacto_idVariavelAleatoriaNova, const SmartEnupla<IdVariavelAleatoria, std::vector<std::string>>& a_lista_nome_idVariavelAleatoriaNova, const SmartEnupla<IdVariavelAleatoria, std::vector<double>> &a_lista_participacao_idVariavelAleatoriaNova);
 
-	bool carregarRHSCortesBenders(const std::string a_nome_arquivo);
 	bool carregarCoeficientesCortesBenders(const std::string a_nome_arquivo);
 	bool carregarEstadosCortesBenders(const std::string a_nome_arquivo);
-
-	void removerTodosCorteBenders();
 
 private:
 
