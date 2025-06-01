@@ -14,7 +14,7 @@ void MetodoSolucao::executarPDDE(EntradaSaidaDados a_entradaSaidaDados, const Id
 
 		const IdEstagio estagio_inicial = a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_estagio_inicial, IdEstagio());
 		const IdEstagio estagio_final = a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_estagio_final, IdEstagio());
-
+		
 		const IdIteracao iteracao_inicial  = a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_iteracao_inicial,  IdIteracao());
 		IdIteracao iteracao_final    = a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_iteracao_final,    IdIteracao());
 		
@@ -27,7 +27,7 @@ void MetodoSolucao::executarPDDE(EntradaSaidaDados a_entradaSaidaDados, const Id
 			iteracao_simulacao_final = iteracao_final;
 
 		for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
-
+			std::cout << " ITERACAO: " << idIteracao << " ITER_INI: " << iteracao_inicial << " ITER FIM " << iteracao_final << "\n";
 			bool simulacao = false;
 
 			if (idIteracao == IdIteracao_0)
@@ -38,12 +38,13 @@ void MetodoSolucao::executarPDDE(EntradaSaidaDados a_entradaSaidaDados, const Id
 				a_modeloOtimizacao.setAtributo(AttComumModeloOtimizacao_imprimir_restricao_por_estagio_por_cenario, true);
 				a_modeloOtimizacao.setAtributo(AttComumModeloOtimizacao_imprimir_variavel_decisao_por_estagio_por_cenario, true);
 			} // if (idIteracao == iteracao_simulacao_final){
-
+			std::cout << "INICIOU FORWARD " << "\n";
 			executarPDDE_forward(a_entradaSaidaDados, estagio_inicial, estagio_final, simulacao, idIteracao, a_idProcesso, a_maiorIdProcesso, a_modeloOtimizacao);
 
 			if (!simulacao)
+				std::cout << "INICIOU BACKWARD " << "\n";
 				executarPDDE_backward_new(a_entradaSaidaDados, estagio_inicial, estagio_final, idIteracao, a_idProcesso, a_maiorIdProcesso, a_modeloOtimizacao);
-
+	
 			executarPDDE_avaliarSolucao(a_entradaSaidaDados, idIteracao, a_idProcesso, a_modeloOtimizacao);
 
 		} // for (IdIteracao idIteracao = iteracao_inicial; idIteracao <= iteracao_final; idIteracao++) {
@@ -77,7 +78,7 @@ void MetodoSolucao::executarPDDE(EntradaSaidaDados a_entradaSaidaDados, const Id
 void MetodoSolucao::executarPDDE_forward(EntradaSaidaDados a_entradaSaidaDados, const IdEstagio a_estagio_inicial, const IdEstagio a_estagio_final, const bool a_simulacao, const IdIteracao a_idIteracao, const IdProcesso a_idProcesso, const IdProcesso a_maiorIdProcesso, ModeloOtimizacao &a_modeloOtimizacao){
 
 	try {
-
+		std::cout << "INICIANDO PDDE FORWARD " << "\n";
 		auto start_clock = std::chrono::high_resolution_clock::now();
 
 		const std::string diretorio = a_entradaSaidaDados.getDiretorioSaida();
@@ -172,7 +173,7 @@ void MetodoSolucao::executarPDDE_forward(EntradaSaidaDados a_entradaSaidaDados, 
 					valores_tratamento.at(1).push_back(getFullString(idEstagio) + ";" + getFullString(a_idProcesso) + ";");
 				} // if (imprimir_tempos) {
 				for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
-
+					std::cout << "idEstagio: " << idEstagio << " idCenario: " << idCenario << " cenario_inicial: " << cenario_inicial << " cenario_final: " << cenario_final << "\n";
 					try {
 
 						auto start_clock_cenario = std::chrono::high_resolution_clock::now();
@@ -262,6 +263,7 @@ void MetodoSolucao::executarPDDE_forward(EntradaSaidaDados a_entradaSaidaDados, 
 			if (custo_inferior_via_mestre.at(idCenario) > custo_inferior.at(idCenario))
 				custo_inferior.at(idCenario) = custo_inferior_via_mestre.at(idCenario);
 		}
+		
 
 		executarPDDE_atualizarCustoInferior(a_idIteracao, a_idProcesso, a_maiorIdProcesso, custo_inferior, a_modeloOtimizacao);
 		executarPDDE_atualizarCustoSuperior(a_idIteracao, a_idProcesso, a_maiorIdProcesso, custo_superior, probabilidade_cenario, a_modeloOtimizacao);
@@ -291,7 +293,7 @@ void MetodoSolucao::executarPDDE_forward(EntradaSaidaDados a_entradaSaidaDados, 
 
 		if (a_idProcesso == IdProcesso_mestre)
 			a_modeloOtimizacao.exportarVariaveisEstado_AcoplamentoPosEstudo(a_idProcesso, a_maiorIdProcesso, a_idIteracao, a_entradaSaidaDados);
-
+		std::cout << "FINALIZOU FORWARD " << "\n";
 	} // try {
 	catch (const std::exception&erro) { throw std::invalid_argument("MetodoSolucao(" + getString(getIdObjeto()) + ")::executarPDDE_forward(a_entradaSaidaDados," + getFullString(a_estagio_inicial) + "," + getFullString(a_estagio_final) + "," + getFullString(a_idIteracao) + "," + getFullString(a_idProcesso) + "," + getFullString(a_maiorIdProcesso) + ",a_modeloOtimizacao): \n" + std::string(erro.what())); }
 
@@ -415,7 +417,7 @@ void MetodoSolucao::executarPDDE_backward_new(EntradaSaidaDados a_entradaSaidaDa
 							a_modeloOtimizacao.setTempoLimiteOtimizacao(tSS, idEstagio, tempo_limite);
 
 						for (IdCenario idCenario = cenario_inicial; idCenario <= cenario_final; idCenario++) {
-
+							std::cout << "idEstagio: " << idEstagio << " idCenario: " << idCenario << " cenario_inicial: " << cenario_inicial << " cenario_final: " << cenario_final << "\n";
 							try {
 
 								IdAbertura abertura_inicial_cenario = IdAbertura_Nenhum;
@@ -805,6 +807,18 @@ void MetodoSolucao::executarPDDE_avaliarSolucao(EntradaSaidaDados a_entradaSaida
 			addElemento(AttVetorMetodoSolucao_tempo_execucao_acumulado, a_idIteracao, tempo_execucao_total);
 
 			const double custo_inferior = getMedia_noNAN(getMatriz(AttMatrizMetodoSolucao_custo_inferior, IdIteracao(),  IdCenario(), double()).at(a_idIteracao));
+			auto vetor_teste = getMatriz(AttMatrizMetodoSolucao_custo_inferior, IdIteracao(),  IdCenario(), double()).at(a_idIteracao);
+			const int numero_elementos = int(vetor_teste.size());
+
+			std::cout << "numero_elementos : " << numero_elementos << " custo_inferior " << custo_inferior << "\n";
+			//for (int i = 0; i < numero_elementos; i++) {
+			//	const auto& elemento = vetor_teste.at(i);
+			//	std::cout << "Cenario: " << elemento.getElemento1() 
+			//			  << " | Valor: " << elemento.getElemento2() << "\n";
+			//}
+			//for (const auto& elemento : vetor_teste) {
+			//	std::cout << "elemento: " << elemento << "\n";
+			//}
 			addElemento(AttVetorMetodoSolucao_custo_inferior, a_idIteracao, custo_inferior);
 
 			double custo_superior = 0.0;

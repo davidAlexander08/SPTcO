@@ -1,0 +1,5 @@
+idUsinaElevatoria;nome;submercado;taxa_de_consumo;usina_origem_bombeamento;usina_destino_bombeamento;penalidade_vazao_bombeada_minima
+1;StaCecilia;1;0.200000000000;88;114;1000
+2;Vigario;1;0.440000000000;114;115;1000
+3;Traicao;1;0.300000000000;72;73;1000
+4;Pedreira;1;0.250000000000;73;81;1000

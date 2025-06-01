@@ -620,7 +620,7 @@ static Valor getMedia(const SmartEnupla<Iterador, Valor> &a_enupla) { return get
 static double getMedia_noNAN(const std::vector<double> &a_vetor) {
 
 	const int numero_elementos = int(a_vetor.size());
-
+	std::cout << "numero_elementos: " << numero_elementos << "\n";
 	if (numero_elementos == 0)
 		return NAN;
 
@@ -629,6 +629,7 @@ static double getMedia_noNAN(const std::vector<double> &a_vetor) {
 	for (int i = 0; i < numero_elementos; i++) {
 		if (!std::isnan(a_vetor.at(i))) {
 			media += a_vetor.at(i);
+			std::cout << "a_vetor.at(i): " << a_vetor.at(i) << "\n";
 			numero_elementos_noNAN++;
 		}
 	}

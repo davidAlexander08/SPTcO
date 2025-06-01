@@ -24,7 +24,7 @@ MetodoSolucao::MetodoSolucao(EntradaSaidaDados a_entradaSaidaDados, const IdProc
 
 			if ((idModeloOtimizacao != IdModeloOtimizacao_multiestagio_estocastico_otimizacao) && (idModeloOtimizacao != IdModeloOtimizacao_multiestagio_estocastico_simulacao))
 				throw std::invalid_argument("Modelo de otimizacao " + getFullString(idModeloOtimizacao) + " nao compativel com metodo de solucao.");
-
+			std::cout << "EXECUTANDO PDDE" << "\n";
 			executarPDDE(a_entradaSaidaDados, a_idProcesso, a_maiorIdProcesso, a_modeloOtimizacao);
 
 		} // if (a_idMetodoSolucao == IdMetodoSolucao_PDDE) {
