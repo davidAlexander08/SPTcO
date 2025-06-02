@@ -7,7 +7,7 @@
 #include <algorithm>
 
 #include "mpi.h"
-
+#include <cmath>
 void MetodoSolucao::executarPDDE(EntradaSaidaDados a_entradaSaidaDados, const IdProcesso a_idProcesso, const IdProcesso a_maiorIdProcesso, ModeloOtimizacao &a_modeloOtimizacao){
 
 	try {
@@ -557,9 +557,16 @@ void MetodoSolucao::executarPDDE_backward_new(EntradaSaidaDados a_entradaSaidaDa
 			numero_soma_custo_abertura_all.setSize(0, numero_aberturas_estagio);
 			MPI_Allreduce(numero_soma_custo_abertura.vetor, numero_soma_custo_abertura_all.vetor, numero_soma_custo_abertura.total, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-			for (IdRealizacao idRealizacao = IdRealizacao_1; idRealizacao <= IdRealizacao(numero_aberturas_estagio); idRealizacao++)
-				a_modeloOtimizacao.setElemento(AttMatrizModeloOtimizacao_custo_medio, idEstagio, idRealizacao, soma_custo_abertura_all.vetor[int(idRealizacao) - 1] / double(numero_soma_custo_abertura_all.vetor[int(idRealizacao) - 1]));
-
+			for (IdRealizacao idRealizacao = IdRealizacao_1; idRealizacao <= IdRealizacao(numero_aberturas_estagio); idRealizacao++){
+				std::cout << "idRealizacao: " << idRealizacao << " IdRealizacao(numero_aberturas_estagio): " << IdRealizacao(numero_aberturas_estagio) << "\n";
+				std::cout << "soma_custo_abertura_all.vetor[int(idRealizacao) - 1]: " << soma_custo_abertura_all.vetor[int(idRealizacao) - 1]<< "\n";
+				std::cout << "double(numero_soma_custo_abertura_all.vetor[int(idRealizacao) - 1]): " << double(numero_soma_custo_abertura_all.vetor[int(idRealizacao) - 1]) << "\n";
+				std::cout << soma_custo_abertura_all.vetor[int(idRealizacao) - 1] / double(numero_soma_custo_abertura_all.vetor[int(idRealizacao) - 1]) << "\n";
+				double numerador = soma_custo_abertura_all.vetor[int(idRealizacao) - 1];
+				double denominador = double(numero_soma_custo_abertura_all.vetor[int(idRealizacao) - 1]);
+				double custo = (denominador == 0) ? 0 : numerador / denominador;
+				a_modeloOtimizacao.setElemento(AttMatrizModeloOtimizacao_custo_medio, idEstagio, idRealizacao,custo );
+			}
 			if (idEstagio == a_estagio_final)
 				a_entradaSaidaDados.setAppendArquivo(false);
 			else
@@ -612,8 +619,14 @@ void MetodoSolucao::executarPDDE_backward_new(EntradaSaidaDados a_entradaSaidaDa
 
 		double tempo_solver_bw_global;
 		MPI_Allreduce(&tempo_medio_otimizacao_solver, &tempo_solver_bw_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-		addElemento(AttVetorMetodoSolucao_tempo_medio_solver_bw, a_idIteracao, tempo_solver_bw_global / int(a_maiorIdProcesso));
+		double divisao = tempo_solver_bw_global / int(a_maiorIdProcesso);
+		std::cout << "tempo_solver_bw_global: " << tempo_solver_bw_global << "\n";
+		std::cout << "a_maiorIdProcesso: " << int(a_maiorIdProcesso) << "\n";
+		if (std::isnan(divisao) || a_maiorIdProcesso == 0) {
+			divisao = 0;
+		}
+		std::cout << "divisao: " << divisao << "\n";
+		addElemento(AttVetorMetodoSolucao_tempo_medio_solver_bw, a_idIteracao, divisao);
 
 		a_entradaSaidaDados.setAppendArquivo(false);
 		a_entradaSaidaDados.setDiretorioSaida(diretorio_iteracao);
@@ -734,7 +747,8 @@ void MetodoSolucao::executarPDDE_atualizarCustoInferior(const IdIteracao a_idIte
 		if (a_idProcesso == IdProcesso_mestre) {   
 
 			if (getSizeMatriz(AttMatrizMetodoSolucao_custo_inferior) == 0)
-				setMatriz_forced(AttMatrizMetodoSolucao_custo_inferior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
+				//setMatriz_forced(AttMatrizMetodoSolucao_custo_inferior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), NAN)))));
+				setMatriz_forced(AttMatrizMetodoSolucao_custo_inferior, SmartEnupla<IdIteracao, SmartEnupla<IdCenario, double>>(a_idIteracao, std::vector<SmartEnupla<IdCenario, double>>(1, SmartEnupla<IdCenario, double>(IdCenario_1, std::vector<double>(IdCenario(a_modeloOtimizacao.getAtributo(AttComumModeloOtimizacao_numero_cenarios, int())), 0.0)))));
 		
 			if (a_custo_inferior.size() > 0) {
 

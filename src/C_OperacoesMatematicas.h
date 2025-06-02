@@ -629,13 +629,13 @@ static double getMedia_noNAN(const std::vector<double> &a_vetor) {
 	for (int i = 0; i < numero_elementos; i++) {
 		if (!std::isnan(a_vetor.at(i))) {
 			media += a_vetor.at(i);
-			std::cout << "a_vetor.at(i): " << a_vetor.at(i) << "\n";
+			std::cout << "i: " << i << " a_vetor.at(i): " << a_vetor.at(i) << "\n";
 			numero_elementos_noNAN++;
 		}
 	}
 
 	media /= double(numero_elementos_noNAN);
-
+	std::cout << "media: " << media << " numero_elementos_noNAN: " << numero_elementos_noNAN << " \n";
 	return media;
 
 } // static double getMedia(const std::vector<double> &a_vetor) {
